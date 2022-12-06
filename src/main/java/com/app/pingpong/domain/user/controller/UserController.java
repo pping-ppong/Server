@@ -1,16 +1,12 @@
 package com.app.pingpong.domain.user.controller;
 
-import com.app.pingpong.domain.user.dto.request.KakaoLoginRequest;
-import com.app.pingpong.domain.user.dto.response.LoginResponse;
-import com.app.pingpong.domain.user.service.KakaoService;
+import com.app.pingpong.domain.user.dto.request.SignUpRequest;
+import com.app.pingpong.domain.user.dto.response.UserResponse;
 import com.app.pingpong.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,4 +15,9 @@ public class UserController {
 
     private final UserService userService;
 
+    @ResponseBody
+    @PostMapping("/sign-up")
+    public ResponseEntity<UserResponse> callBack(@RequestBody SignUpRequest signUpRequest) {
+        return new ResponseEntity<>(userService.signup(signUpRequest), HttpStatus.OK);
+    }
 }

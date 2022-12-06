@@ -6,11 +6,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Getter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Entity
 public class User {
 
@@ -21,5 +23,9 @@ public class User {
     private Long socialIdx;
 
     private String email;
+
+    private String nickname;
+
+    private String profileImage;
 
 }
