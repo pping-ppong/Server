@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.app.pingpong.global.utils.ValidationRegex.isRegexNickname;
+
 @RequiredArgsConstructor
 @Service
 public class UserService {
@@ -23,6 +25,9 @@ public class UserService {
         // 3. 프로필 이미지 s3에 업로드하기
 
         // 4. 닉네임 형식 체크 -> 한글 영문 조합 10자 이내
+        if (!isRegexNickname(request.getNickname())) {
+            // 에러
+        }
 
         User user = userRepository.save(
                 User.builder()
@@ -34,4 +39,17 @@ public class UserService {
 
         return new UserResponse(user.getUserIdx());
     }
+
+    private void validateSignUpInfo(SignUpRequest request) {
+        // 1. null값 체크
+
+        // 2. 이미 등록된 유저인지 체크
+
+        // 3. 프로필 이미지 s3에 업로드하기
+
+        if (!isRegexNickname(request.getNickname())) {
+
+        }
+    }
+
 }
