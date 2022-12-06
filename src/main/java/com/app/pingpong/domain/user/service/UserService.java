@@ -26,7 +26,7 @@ public class UserService {
 
         // 4. 닉네임 형식 체크 -> 한글 영문 조합 10자 이내
         if (!isRegexNickname(request.getNickname())) {
-            // 에러
+
         }
 
         User user = userRepository.save(
@@ -38,18 +38,6 @@ public class UserService {
                         .build());
 
         return new UserResponse(user.getUserIdx());
-    }
-
-    private void validateSignUpInfo(SignUpRequest request) {
-        // 1. null값 체크
-
-        // 2. 이미 등록된 유저인지 체크
-
-        // 3. 프로필 이미지 s3에 업로드하기
-
-        if (!isRegexNickname(request.getNickname())) {
-
-        }
     }
 
 }
