@@ -4,6 +4,7 @@ import com.app.pingpong.domain.user.dto.response.KakaoResponse;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonElement;
@@ -18,6 +19,12 @@ import java.util.HashMap;
 public class KakaoService {
 
     private final UserRepository userRepository;
+
+    @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
+    private String client_id;
+
+    @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
+    private String redirect_uri;
 
     /* 액세스 토큰 발급 */
     public String getKakaoAccessToken (String code) {
@@ -34,8 +41,11 @@ public class KakaoService {
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
             StringBuilder sb = new StringBuilder();
             sb.append("grant_type=authorization_code");
-            sb.append("&client_id=1f6fddb56b60c6bedd26a879812f0a7c"); // TODO REST_API_KEY 입력
-            sb.append("&redirect_uri=http://localhost:8080/app/users/kakao"); // TODO 인가코드 받은 redirect_uri 입력
+            //sb.append("&client_id=1f6fddb56b60c6bedd26a879812f0a7c"); // TODO REST_API_KEY 입력
+            //sb.append("&redirect_uri=http://localhost:8080/app/users/kakao"); // TODO 인가코드 받은 redirect_uri 입력
+            sb.append("&client_id="+client_id);
+            sb.append("&redirect_uri="+redirect_uri);
+
             sb.append("&code=" + code);
             bw.write(sb.toString());
             bw.flush();
@@ -92,5 +102,4 @@ public class KakaoService {
         }
         return new KakaoResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
     }
-
 }

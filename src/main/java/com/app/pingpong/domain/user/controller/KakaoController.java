@@ -14,15 +14,12 @@ public class KakaoController {
 
     private final KakaoService kakaoService;
 
-    /* 카카오에서 인가 코드를 가져옴 */
-
-
-
     /* 카카오에서 정보를 가져옴*/
     @ResponseBody
     @GetMapping("/kakao/info")
-    public ResponseEntity<KakaoResponse> callBack(@RequestParam String code) {
+    public ResponseEntity<KakaoResponse> getKakaoUserInfo(@RequestParam String code) {
         String accessToken = kakaoService.getKakaoAccessToken(code);
+        System.out.println("accessToken!!! : " + accessToken);
         KakaoResponse kakaoUserInfo = kakaoService.getKakaoUserInfo(accessToken);
         return new ResponseEntity<>(kakaoUserInfo, HttpStatus.OK);
     }

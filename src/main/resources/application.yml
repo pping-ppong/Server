@@ -11,8 +11,8 @@ spring:
         registration:
           kakao:
             authorization-grant-type: authorization_code
-            client-id: 1f6fddb56b60c6bedd26a879812f0a7c
-            redirect-uri: "http://localhost:8080/app/users/kakao/834623"
+            client-id: "1f6fddb56b60c6bedd26a879812f0a7c"
+            redirect-uri: "http://localhost:8080/app/users/kakao"
             scope:
               - account_email
             client-authentication-method: POST
