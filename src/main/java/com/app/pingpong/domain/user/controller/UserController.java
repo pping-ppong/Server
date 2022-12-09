@@ -15,8 +15,9 @@ public class UserController {
 
     private final UserService userService;
 
+    /* 자신의 조회 - 마이페이지 */
     @ResponseBody
-    @PostMapping("/sign-up")
+    @GetMapping("/{userIdx}/mypage")
     public ResponseEntity<UserResponse> callBack(@RequestBody SignUpRequest signUpRequest) {
         return new ResponseEntity<>(userService.signup(signUpRequest), HttpStatus.OK);
     }

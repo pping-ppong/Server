@@ -1,29 +1,22 @@
 package com.app.pingpong.domain.user.service;
 
-import com.app.pingpong.domain.user.dto.response.GoogleResponse;
-import com.app.pingpong.domain.user.dto.response.KakaoResponse;
+import com.app.pingpong.domain.user.dto.response.UserLoginResponse;
+import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
+import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.app.pingpong.global.config.RestTemplateConfig;
-import com.fasterxml.jackson.core.json.JsonReadContext;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.app.pingpong.global.exception.BaseException;
 import com.google.gson.JsonObject;
-import com.google.gson.stream.JsonReader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonElement;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.http.HttpClient;
 import java.util.HashMap;
-import java.util.Map;
 
 @RequiredArgsConstructor
 @Service
@@ -95,7 +88,7 @@ public class OAuthService {
     }
 
     /* 사용자 정보를 가져옴 : 소설식별자, 이메일 */
-    public KakaoResponse getKakaoUserInfo(String accessToken) {
+    public UserOAuthResponse getKakaoUserInfo(String accessToken) {
         HashMap<String, Object> userInfo = new HashMap<>();
         String reqURL = "https://kapi.kakao.com/v2/user/me";
 
@@ -123,7 +116,7 @@ public class OAuthService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new KakaoResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
+        return new UserOAuthResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
     }
 
     public String getGoogleAccessToken (String code) {
@@ -165,7 +158,7 @@ public class OAuthService {
         return accessToken;
     }
 
-    public GoogleResponse getGoogleUserInfo(String accessToken) {
+    public UserOAuthResponse getGoogleUserInfo(String accessToken) {
         HashMap<String, Object> userInfo = new HashMap<>();
         String reqURL = "https://www.googleapis.com/oauth2/v2/userinfo";
 
@@ -192,6 +185,32 @@ public class OAuthService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new GoogleResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
+        return new UserOAuthResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
+    }
+
+    public UserLoginResponse kakaoLogin(String accessToken) {
+        // 1. 액세스 토큰을 통해 유저의 정보를 가져옴
+        UserOAuthResponse kakaoUserInfo = getKakaoUserInfo(accessToken);
+        String email = kakaoUserInfo.getEmail();
+
+        User user;
+        // 가입된 유저가 아니라면 DB에 저장 -> 닉네임과 프로필 사진이 null이면 회원가입을 진행하도록 클라이언트에게 알림
+        if (!userRepository.existsUserByEmail(email)) {
+            user = userRepository.save(User.builder()
+                    .socialIdx(Long.valueOf(kakaoUserInfo.getSocialIdx()))
+                    .email(kakaoUserInfo.getEmail())
+                    .nickname(null)
+                    .profileImage(null)
+                    .build()
+            );
+        }
+        else { // 저장 되어있다면?
+            user = userRepository.findByEmail(email);
+        }
+        // 토큰 발급
+
+        
+        return new UserLoginResponse(user.getUserIdx(), user.getSocialIdx(), user.getEmail(),
+                user.getNickname(), user.getProfileImage());
     }
 }

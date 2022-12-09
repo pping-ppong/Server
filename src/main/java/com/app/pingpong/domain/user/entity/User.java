@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -27,5 +26,13 @@ public class User {
     private String nickname;
 
     private String profileImage;
+
+    @Builder
+    public User(Long socialIdx, String email, String nickname, String profileImage) {
+        this.socialIdx = socialIdx;
+        this.email = email;
+        this.nickname = nickname;
+        this.profileImage = profileImage;
+    }
 
 }

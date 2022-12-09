@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class GoogleResponse {
+public class UserOAuthResponse {
     private String socialIdx;
     private String email;
 }
