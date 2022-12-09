@@ -15,6 +15,13 @@ public class UserController {
 
     private final UserService userService;
 
+    /* 회원가입 */
+    @ResponseBody
+    @PostMapping("/sign-up")
+    public ResponseEntity<UserResponse> singUp(@RequestBody SignUpRequest signUpRequest) {
+        return new ResponseEntity<>(userService.signup(signUpRequest), HttpStatus.OK);
+    }
+
     /* 자신의 조회 - 마이페이지 */
     @ResponseBody
     @GetMapping("/{userIdx}/mypage")

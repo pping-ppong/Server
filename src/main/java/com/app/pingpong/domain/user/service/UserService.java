@@ -22,26 +22,16 @@ public class UserService {
     @Transactional
     public UserResponse signup(SignUpRequest request) {
         validateUserInfo(request);
-        User user = userRepository.save(
-                User.builder()
-                        .socialIdx(Long.parseLong(request.getSocialIdx()))
-                        .email(request.getEmail())
-                        .nickname(request.getNickname())
-                        .profileImage(request.getProfileImage())
-                        .build());
+        User user = userRepository.findBySocialIdx(request.getSocialIdx());
+        user.setNickname(request.getNickname());
+        user.setProfileImage(request.getProfileImage());
         return new UserResponse(user.getUserIdx());
     }
 
     private void validateUserInfo(SignUpRequest request)  {
-        boolean existsEmail = userRepository.existsUserByEmail(request.getEmail());
-        if (existsEmail) {
-            throw new EmailAlreadyExistsException();
-        }
-
         if (!isRegexNickname(request.getNickname())) {
             throw new InvalidNickNameException();
         }
-
     }
 
 }

@@ -35,4 +35,11 @@ public class User {
         this.profileImage = profileImage;
     }
 
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
 }

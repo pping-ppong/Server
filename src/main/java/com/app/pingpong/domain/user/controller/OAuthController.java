@@ -16,22 +16,15 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/oauth")
 public class OAuthController {
 
-    private final OAuthService OAuthService;
+    private final OAuthService oauthService;
     private final UserService userService;
-
-    /* 회원가입 */
-    @ResponseBody
-    @PostMapping("/sign-up")
-    public ResponseEntity<UserResponse> callBack(@RequestBody SignUpRequest signUpRequest) {
-        return new ResponseEntity<>(userService.signup(signUpRequest), HttpStatus.OK);
-    }
 
     /* 카카오 로그인 */
     @ResponseBody
     @GetMapping("/kakao")
     public ResponseEntity<UserLoginResponse> kakaoLogin(@RequestParam String code) {
-        String accessToken = OAuthService.getKakaoAccessToken(code);
-        UserLoginResponse kakaoLoginUser = OAuthService.kakaoLogin(accessToken);
+        String accessToken = oauthService.getKakaoAccessToken(code);
+        UserLoginResponse kakaoLoginUser = oauthService.kakaoLogin(accessToken);
         return new ResponseEntity<>(kakaoLoginUser, HttpStatus.OK);
     }
 
@@ -39,8 +32,8 @@ public class OAuthController {
     @ResponseBody
     @GetMapping("/google")
     public ResponseEntity<UserOAuthResponse> googleLogin(@RequestParam String code) {
-        String accessToken = OAuthService.getGoogleAccessToken(code);
-        UserOAuthResponse googleUserInfo = OAuthService.getGoogleUserInfo(accessToken);
+        String accessToken = oauthService.getGoogleAccessToken(code);
+        UserOAuthResponse googleUserInfo = oauthService.getGoogleUserInfo(accessToken);
         return new ResponseEntity<>(googleUserInfo, HttpStatus.OK);
     }
 }
