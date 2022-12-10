@@ -4,8 +4,9 @@ import com.app.pingpong.domain.user.dto.response.UserLoginResponse;
 import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
 import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.UserRepository;
-import com.app.pingpong.global.config.RestTemplateConfig;
-import com.app.pingpong.global.exception.BaseException;
+import com.app.pingpong.global.config.JwtTokenProvider;
+import com.app.pingpong.global.exception.user.EmailAlreadyExistsException;
+import com.app.pingpong.global.utils.SecurityUtils;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +24,7 @@ import java.util.HashMap;
 public class OAuthService {
 
     private final UserRepository userRepository;
-    private final RestTemplateConfig restTemplate;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
     private String kakao_client_id;
@@ -205,12 +206,11 @@ public class OAuthService {
             );
         }
         else { // 저장 되어있다면?
-            user = userRepository.findByEmail(email);
+            user = userRepository.findByEmail(email).orElseThrow(() -> new EmailAlreadyExistsException());
         }
         // 토큰 발급
-
-        
+        String jwt = jwtTokenProvider.createAccessToken(user.getEmail());
         return new UserLoginResponse(user.getUserIdx(), user.getSocialIdx(), user.getEmail(),
-                user.getNickname(), user.getProfileImage());
+                user.getNickname(), user.getProfileImage(), jwt);
     }
 }

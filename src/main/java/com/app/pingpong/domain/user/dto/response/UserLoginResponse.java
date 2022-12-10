@@ -11,5 +11,5 @@ public class UserLoginResponse {
     private String email;
     private String nickname;
     private String profileImage;
-    //private String jwt;
+    private String jwt;
 }
