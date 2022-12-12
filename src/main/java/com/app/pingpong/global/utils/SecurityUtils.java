@@ -6,8 +6,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 @Slf4j
 public class SecurityUtils {
-    public static String getLoginUsername(){
+    public static Long getCurrentUserIdx(){
         Authentication loginUser = SecurityContextHolder.getContext().getAuthentication();
-        return loginUser.getName();
+        if (loginUser == null || loginUser.getName() == null) {
+            throw new RuntimeException("Security Context에 인증 정보가 없습니다.");
+        }
+        return Long.parseLong(loginUser.getName());
     }
 }

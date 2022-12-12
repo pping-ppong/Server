@@ -11,4 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class KakaoLoginRequest {
     private String code;
+
+
 }

@@ -1,6 +1,8 @@
 package com.app.pingpong.domain.user.controller;
 
 import com.app.pingpong.domain.user.dto.request.SignUpRequest;
+import com.app.pingpong.domain.user.dto.request.TokenRequest;
+import com.app.pingpong.domain.user.dto.response.TokenResponse;
 import com.app.pingpong.domain.user.dto.response.UserLoginResponse;
 import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
@@ -21,7 +23,7 @@ public class OAuthController {
 
     /* 카카오 로그인 */
     @ResponseBody
-    @GetMapping("/kakao")
+    @PostMapping("/kakao")
     public ResponseEntity<UserLoginResponse> kakaoLogin(@RequestParam String code) {
         String accessToken = oauthService.getKakaoAccessToken(code);
         UserLoginResponse kakaoLoginUser = oauthService.kakaoLogin(accessToken);
@@ -30,10 +32,18 @@ public class OAuthController {
 
     /* 구글 로그인 */
     @ResponseBody
-    @GetMapping("/google")
+    @PostMapping("/google")
     public ResponseEntity<UserOAuthResponse> googleLogin(@RequestParam String code) {
         String accessToken = oauthService.getGoogleAccessToken(code);
         UserOAuthResponse googleUserInfo = oauthService.getGoogleUserInfo(accessToken);
         return new ResponseEntity<>(googleUserInfo, HttpStatus.OK);
     }
+
+    /* 토큰 재발행 */
+    @ResponseBody
+    @PostMapping("reissue")
+    public ResponseEntity<TokenResponse> reissue(@RequestBody TokenRequest tokenRequest) {
+        return new ResponseEntity<>(oauthService.reissue(tokenRequest), HttpStatus.OK);
+    }
+
 }

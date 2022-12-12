@@ -5,6 +5,11 @@ spring:
     password: A1b2c347
     driver-class-name : com.mysql.cj.jdbc.Driver
 
+  jpa:
+    hibernate:
+      ddl-auto: create
+      show-sql: true
+
   security:
     oauth2:
       client:
@@ -33,5 +38,5 @@ spring:
 
 jwt:
   token:
-    secret-key: pingpong
+    secret-key: Q4NSl604sgyHJj1qwEkR3ycUeR4uUAt7WJraD7EN3O9DVM4yyYuHxMEbSF4XXyYJkal13eqgB0F7Bq4Hsajlshjdfahlskjfhalsjfdkdahslfjkafhsldjfhldajfhksdahlf
     expire-length: 86400

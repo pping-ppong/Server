@@ -1,8 +1,12 @@
 package com.app.pingpong.domain.user.service;
 
+import com.app.pingpong.domain.user.dto.request.TokenRequest;
+import com.app.pingpong.domain.user.dto.response.TokenResponse;
 import com.app.pingpong.domain.user.dto.response.UserLoginResponse;
 import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
+import com.app.pingpong.domain.user.entity.RefreshToken;
 import com.app.pingpong.domain.user.entity.User;
+import com.app.pingpong.domain.user.repository.RefreshTokenRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.app.pingpong.global.config.JwtTokenProvider;
 import com.app.pingpong.global.exception.user.EmailAlreadyExistsException;
@@ -10,9 +14,14 @@ import com.app.pingpong.global.utils.SecurityUtils;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonElement;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -23,8 +32,10 @@ import java.util.HashMap;
 @Service
 public class OAuthService {
 
+    private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
     private String kakao_client_id;
@@ -208,9 +219,44 @@ public class OAuthService {
         else { // 저장 되어있다면?
             user = userRepository.findByEmail(email).orElseThrow(() -> new EmailAlreadyExistsException());
         }
+
         // 토큰 발급
-        String jwt = jwtTokenProvider.createAccessToken(user.getEmail());
+        //UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email, user.getSocialIdx());
+        //Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        TokenResponse tokenResponse = jwtTokenProvider.createToken(authentication);
+        RefreshToken refreshToken = RefreshToken.builder()
+                .key(authentication.getName())
+                .value(tokenResponse.getRefreshToken())
+                .build();
+        refreshTokenRepository.save(refreshToken);
+
         return new UserLoginResponse(user.getUserIdx(), user.getSocialIdx(), user.getEmail(),
-                user.getNickname(), user.getProfileImage(), jwt);
+                user.getNickname(), user.getProfileImage(), tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
+    }
+
+    @Transactional
+    public TokenResponse reissue(TokenRequest tokenRequest) {
+        // 1. 리프레시 토큰 검증
+
+        // 2. 액세스 토큰에서 유저 식별자 가져오기
+        Authentication authentication = jwtTokenProvider.getAuthentication(tokenRequest.getAccessToken());
+
+        // 3. 저장소에 있는 식별자 기반으로 리프레시 토큰을 가져옴
+        RefreshToken refreshToken = refreshTokenRepository.findByKey(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("로그아웃된 사용자입니다."));
+
+        // 4. 리프레시 토큰이 일치하는지 검사
+        if(!refreshToken.getValue().equals(tokenRequest.getRefreshToken())) {
+            throw new RuntimeException("토큰의 유저 정보가 일치하지 않습니다.");
+        }
+
+        // 토큰 재생성
+        TokenResponse token = jwtTokenProvider.createToken(authentication);
+
+        // 리프레시 토큰 업데이트
+        RefreshToken newRefreshToken = refreshToken.updateValue(tokenRequest.getRefreshToken());
+        refreshTokenRepository.save(newRefreshToken);
+        return token;
     }
 }
