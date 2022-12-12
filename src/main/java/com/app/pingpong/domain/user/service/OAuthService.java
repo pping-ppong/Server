@@ -221,8 +221,6 @@ public class OAuthService {
         }
 
         // 토큰 발급
-        //UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email, user.getSocialIdx());
-        //Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         TokenResponse tokenResponse = jwtTokenProvider.createToken(authentication);
         RefreshToken refreshToken = RefreshToken.builder()

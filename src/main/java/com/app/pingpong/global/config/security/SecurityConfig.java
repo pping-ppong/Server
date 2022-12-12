@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .and()
 
                 .authorizeHttpRequests()
-                .requestMatchers("/oauth/**", "/app/users/kakao/**").permitAll() // 여기는 인증 필요 없음
+                .requestMatchers("/oauth/**", "/app/users/**").permitAll() // 여기는 인증 필요 없음
                 .anyRequest().authenticated()// 나머지 API는 모두 인증 필요
                 .and()
 

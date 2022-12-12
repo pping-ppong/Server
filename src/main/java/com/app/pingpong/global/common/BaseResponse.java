@@ -1,5 +1,6 @@
 package com.app.pingpong.global.common;
 
+import com.app.pingpong.global.exception.BaseExceptionStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -7,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
+
+import static com.app.pingpong.global.exception.BaseExceptionStatus.SUCCESS;
 
 @Getter
 @AllArgsConstructor
@@ -17,23 +20,21 @@ public class BaseResponse<T> {
     @JsonProperty("isSuccess")
     private final Boolean isSuccess;
     private final String message;
-    private final String code;
+    private final int code;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private T result;
 
-    public static <T> BaseResponse<T> ok(T result) {
-        return (BaseResponse<T>) BaseResponse.builder()
-                .code(String.valueOf(HttpStatus.OK.value()))
-                .message("요청에 성공하였습니다.")
-                .result(result)
-                .build();
+    public BaseResponse(T result) {
+        this.isSuccess = SUCCESS.isSuccess();
+        this.message = SUCCESS.getMessage();
+        this.code = SUCCESS.getCode();
+        this.result = result;
     }
 
-    public static <T> BaseResponse<T> ok() {
-        return (BaseResponse<T>) BaseResponse.builder()
-                .code(String.valueOf(HttpStatus.OK.value()))
-                .message("요청에 성공하였습니다.")
-                .result(null)
-                .build();
+    public BaseResponse(BaseExceptionStatus status) {
+        this.isSuccess = status.isSuccess();
+        this.message = status.getMessage();
+        this.code = status.getCode();
     }
 
 }
