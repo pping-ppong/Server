@@ -2,12 +2,10 @@ package com.app.pingpong.global.config;
 
 import com.app.pingpong.domain.user.dto.response.TokenResponse;
 import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.exception.BaseExceptionStatus;
+import com.app.pingpong.global.exception.BaseResultCode;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -94,7 +92,7 @@ public class JwtTokenProvider {
             return true;
         } catch (JwtException e) {
             System.out.println("======== 토큰 잘못됨 =========");
-            throw new BaseException(BaseExceptionStatus.USER_EMAIL_ALREADY_EXISTS);
+            throw new BaseException(BaseResultCode.USER_EMAIL_ALREADY_EXISTS);
         }
     }
 }

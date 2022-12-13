@@ -35,6 +35,7 @@ public class User {
         this.profileImage = profileImage;
     }
 
+
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
     }

@@ -2,15 +2,13 @@ package com.app.pingpong.domain.user.controller;
 
 import com.app.pingpong.domain.user.dto.request.SignUpRequest;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
+import com.app.pingpong.domain.user.dto.response.UserSearchRes;
 import com.app.pingpong.domain.user.service.UserService;
 import com.app.pingpong.global.common.BaseResponse;
-import com.app.pingpong.global.exception.BaseExceptionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import static com.app.pingpong.global.exception.BaseExceptionStatus.SUCCESS_VALIDATE_NICKNAME;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,9 +27,9 @@ public class UserController {
     /* 회원가입 시 닉네임 유효성 검사 */
     @ResponseBody
     @PostMapping("/validate")
-    public BaseResponse<String> validateNickname(@RequestParam String nickname) {
-        userService.validateNickname(nickname);
-        return new BaseResponse<>(SUCCESS_VALIDATE_NICKNAME);
+    public ResponseEntity<BaseResponse> validateNickname(@RequestParam String nickname) {
+        //return new BaseResponse<>(SUCCESS_VALIDATE_NICKNAME);
+        return new ResponseEntity<>(userService.validateNickname(nickname), HttpStatus.OK);
     }
 
     /* 자신의 조회 - 마이페이지 */
@@ -40,4 +38,12 @@ public class UserController {
     public ResponseEntity<UserResponse> callBack(@RequestBody SignUpRequest signUpRequest) {
         return new ResponseEntity<>(userService.signup(signUpRequest), HttpStatus.OK);
     }
+
+    /* 유저 검색 by 닉네임*/
+    @ResponseBody
+    @GetMapping("/search")
+    public ResponseEntity<UserSearchRes> search(@RequestParam("nickname") String nickname) {
+        return new ResponseEntity<>(userService.search(nickname), HttpStatus.OK);
+    }
+
 }

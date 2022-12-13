@@ -2,14 +2,13 @@ package com.app.pingpong.domain.user.service;
 
 import com.app.pingpong.domain.user.dto.request.SignUpRequest;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
+import com.app.pingpong.domain.user.dto.response.UserSearchRes;
 import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.app.pingpong.global.common.BaseResponse;
-import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.exception.user.EmailAlreadyExistsException;
+import com.app.pingpong.global.exception.BaseResultCode;
 import com.app.pingpong.global.exception.user.InvalidNickNameException;
 import com.app.pingpong.global.exception.user.NicknameAlreadyExistsException;
-import com.sun.net.httpserver.Authenticator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,12 +36,18 @@ public class UserService {
         }
     }
 
-    public void validateNickname(String nickname) {
+    public BaseResponse validateNickname(String nickname) {
         if (!isRegexNickname(nickname)) {
             throw new InvalidNickNameException();
         }
         if (userRepository.existsUserByNickname(nickname)) {
             throw new NicknameAlreadyExistsException();
         }
+        return new BaseResponse<>(BaseResultCode.SUCCESS_VALIDATE_NICKNAME);
+    }
+
+    public UserSearchRes search(String nickname) {
+        User user = userRepository.findByNicknameContains(nickname);
+        return new UserSearchRes(user);
     }
 }

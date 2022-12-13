@@ -1,15 +1,14 @@
 package com.app.pingpong.global.common;
 
-import com.app.pingpong.global.exception.BaseExceptionStatus;
+import com.app.pingpong.global.exception.BaseResultCode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
-import static com.app.pingpong.global.exception.BaseExceptionStatus.SUCCESS;
+import static com.app.pingpong.global.exception.BaseResultCode.SUCCESS;
 
 @Getter
 @AllArgsConstructor
@@ -31,7 +30,7 @@ public class BaseResponse<T> {
         this.result = result;
     }
 
-    public BaseResponse(BaseExceptionStatus status) {
+    public BaseResponse(BaseResultCode status) {
         this.isSuccess = status.isSuccess();
         this.message = status.getMessage();
         this.code = status.getCode();
