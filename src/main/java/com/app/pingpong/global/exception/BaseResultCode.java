@@ -13,7 +13,7 @@ public enum BaseResultCode {
     /* 3000   : Response Error  */
     USER_EMAIL_ALREADY_EXISTS(false, 3000, "이미 사용 중인 이메일입니다."),
     USER_NICKNAME_ALREADY_EXISTS(false, 3001, "이미 사용 중인 닉네임입니다."),
-
+    SEARCH_USER_NICKNAME_NOT_EXISTS(false, 3003, "해당 닉네임의 사용자가 존재하지않습니다."),
     INVALID_NICKNAME(false, 3002, "형식에 맞지 않는 닉네임입니다."),
 
 

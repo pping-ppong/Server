@@ -8,10 +8,13 @@ import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
 import com.app.pingpong.domain.user.service.OAuthService;
 import com.app.pingpong.domain.user.service.UserService;
+import com.app.pingpong.global.exception.user.EmailAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor
@@ -25,9 +28,14 @@ public class OAuthController {
     @ResponseBody
     @PostMapping("/kakao")
     public ResponseEntity<UserLoginResponse> kakaoLogin(@RequestParam String code) {
-        String accessToken = oauthService.getKakaoAccessToken(code);
-        UserLoginResponse kakaoLoginUser = oauthService.kakaoLogin(accessToken);
-        return new ResponseEntity<>(kakaoLoginUser, HttpStatus.OK);
+        try {
+            String accessToken = oauthService.getKakaoAccessToken(code);
+            UserLoginResponse kakaoLoginUser = oauthService.kakaoLogin(accessToken);
+            return new ResponseEntity<>(kakaoLoginUser, HttpStatus.OK);
+
+        } catch (EmailAlreadyExistsException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /* 구글 로그인 */
@@ -41,7 +49,7 @@ public class OAuthController {
 
     /* 토큰 재발행 */
     @ResponseBody
-    @PostMapping("reissue")
+    @PostMapping("/reissue")
     public ResponseEntity<TokenResponse> reissue(@RequestBody TokenRequest tokenRequest) {
         return new ResponseEntity<>(oauthService.reissue(tokenRequest), HttpStatus.OK);
     }

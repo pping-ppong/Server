@@ -18,7 +18,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return (UserDetails) userRepository.findByEmail(email)
-                .orElseThrow(() -> new EmailAlreadyExistsException()); //여기 수정필요
+        try {
+            return (UserDetails) userRepository.findByEmail(email)
+                    .orElseThrow(EmailAlreadyExistsException::new); //여기 수정필요
+        } catch (EmailAlreadyExistsException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

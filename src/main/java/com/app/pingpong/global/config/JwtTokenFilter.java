@@ -1,5 +1,6 @@
 package com.app.pingpong.global.config;
 
+import com.app.pingpong.global.exception.BaseException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,10 +27,14 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // 1. 요청 헤더에서 토큰을 꺼냄
         String token = resolveToken(request);
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            // 2. 정상 토큰이면 토큰을 통해 생성한 Authentication 객체를 securityContext에 저장
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                // 2. 정상 토큰이면 토큰을 통해 생성한 Authentication 객체를 securityContext에 저장
+                Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+        } catch (BaseException e) {
+            throw new RuntimeException(e);
         }
         filterChain.doFilter(request, response);
     }

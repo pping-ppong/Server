@@ -86,7 +86,7 @@ public class JwtTokenProvider {
     }
 
     /* 토큰 검증*/
-    public boolean validateToken(String token) {
+    public boolean validateToken(String token) throws BaseException {
         try {
             Jwts.parser().setSigningKey(key).parseClaimsJws(token);
             return true;

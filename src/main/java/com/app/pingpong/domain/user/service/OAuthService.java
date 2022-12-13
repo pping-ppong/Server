@@ -200,7 +200,7 @@ public class OAuthService {
         return new UserOAuthResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
     }
 
-    public UserLoginResponse kakaoLogin(String accessToken) {
+    public UserLoginResponse kakaoLogin(String accessToken) throws EmailAlreadyExistsException {
         // 1. 액세스 토큰을 통해 유저의 정보를 가져옴
         UserOAuthResponse kakaoUserInfo = getKakaoUserInfo(accessToken);
         String email = kakaoUserInfo.getEmail();
