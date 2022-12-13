@@ -229,7 +229,7 @@ public class OAuthService {
                 .build();
         refreshTokenRepository.save(refreshToken);
 
-        return new UserLoginResponse(user.getUserIdx(), user.getSocialIdx(), user.getEmail(),
+        return new UserLoginResponse(user.getId(), user.getSocialIdx(), user.getEmail(),
                 user.getNickname(), user.getProfileImage(), tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
     }
 

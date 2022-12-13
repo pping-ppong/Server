@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
       show-sql: true
 
   security:
@@ -40,3 +40,7 @@ jwt:
   token:
     secret-key: Q4NSl604sgyHJj1qwEkR3ycUeR4uUAt7WJraD7EN3O9DVM4yyYuHxMEbSF4XXyYJkal13eqgB0F7Bq4Hsajlshjdfahlskjfhalsjfdkdahslfjkafhsldjfhldajfhksdahlf
     expire-length: 86400
+
+properties:
+  hibernate:
+    globally_quoted_identifiers: true

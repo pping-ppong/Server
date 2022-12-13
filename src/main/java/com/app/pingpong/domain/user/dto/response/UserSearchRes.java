@@ -10,7 +10,7 @@ public class UserSearchRes {
     private String profileImage;
 
     public UserSearchRes(User user) {
-        this.userIdx = user.getUserIdx();
+        this.userIdx = user.getId();
         this.nickname = user.getNickname();
         this.profileImage = user.getProfileImage();
     }

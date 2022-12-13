@@ -17,7 +17,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long userIdx;
+    private Long id;
 
     private Long socialIdx;
 
@@ -34,7 +34,6 @@ public class User {
         this.nickname = nickname;
         this.profileImage = profileImage;
     }
-
 
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
