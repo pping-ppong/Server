@@ -40,48 +40,46 @@ public class UserService {
         return new UserResponse(user.getId());
     }
 
-    private void validateUserInfo(SignUpRequest request) throws InvalidNickNameException {
+    private void validateUserInfo(SignUpRequest request) {
         if (!isRegexNickname(request.getNickname())) {
             throw new InvalidNickNameException();
         }
     }
 
-    public BaseResponse validateNickname(String nickname) throws InvalidNickNameException, NicknameAlreadyExistsException {
+    public BaseResponse validateNickname(String nickname) {
         if (!isRegexNickname(nickname)) {
             throw new InvalidNickNameException();
         }
         if (userRepository.existsUserByNickname(nickname)) {
             throw new NicknameAlreadyExistsException();
         }
-        return new BaseResponse<>(BaseResultCode.SUCCESS_VALIDATE_NICKNAME);
+        return new BaseResponse<>(true, BaseResultCode.SUCCESS_VALIDATE_NICKNAME.getMessage(), BaseResultCode.SUCCESS_VALIDATE_NICKNAME.getCode());
     }
 
-    public UserSearchRes search(String nickname) throws BaseException {
+    public BaseResponse search(String nickname) {
         User user = userRepository.findByNicknameContains(nickname);
         if (user == null) {
             throw new BaseException(SEARCH_USER_NICKNAME_NOT_EXISTS);
         }
 
-
-        try {
-            SearchHistory history = SearchHistory.builder()
-                    .content(nickname)
-                    .user(user)
-                    .build();
-            searchHistoryRepository.save(history);
-            return new UserSearchRes(user);
-
-        } catch (Exception exception) {
-            throw new BaseException(DATABASE_ERROR);
-        }
+        SearchHistory history = SearchHistory.builder()
+                .content(nickname)
+                .user(user)
+                .build();
+        searchHistoryRepository.save(history);
+        return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode(), user);
     }
 
-    public List<SearchHistoryResponse> findSearchHistory(Long userIdx) {
+    public BaseResponse findSearchHistory(Long userIdx) {
         List<SearchHistory> history = searchHistoryRepository.findTop10ByUserIdOrderByIdDesc(userIdx);
         List<SearchHistoryResponse> findSearchHistory = new ArrayList<>();
         for (SearchHistory h : history) {
-            findSearchHistory.add(new SearchHistoryResponse(h.getId(), h.getContent()));
+                findSearchHistory.add(new SearchHistoryResponse(h.getId(), h.getContent()));
         }
-        return findSearchHistory;
+        return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode(), findSearchHistory);
+    }
+
+    public BaseResponse findUserProfile(SignUpRequest signUpRequest) {
+        return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode());
     }
 }

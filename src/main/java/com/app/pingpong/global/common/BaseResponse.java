@@ -16,7 +16,7 @@ import static com.app.pingpong.global.exception.BaseResultCode.SUCCESS;
 public class BaseResponse<T> {
 
     @JsonProperty("isSuccess")
-    private final Boolean isSuccess;
+    private Boolean isSuccess;
     private final String message;
     private final int code;
 
@@ -36,4 +36,9 @@ public class BaseResponse<T> {
         this.code = status.getCode();
     }
 
+    public BaseResponse(boolean isSuccess, String message, int code) {
+        this.isSuccess = isSuccess;
+        this.message = message;
+        this.code = code;
+    }
 }
