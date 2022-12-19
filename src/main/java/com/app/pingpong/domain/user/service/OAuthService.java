@@ -9,7 +9,8 @@ import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.RefreshTokenRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.app.pingpong.global.config.JwtTokenProvider;
-import com.app.pingpong.global.exception.user.EmailAlreadyExistsException;
+import com.app.pingpong.global.exception.BaseException;
+import com.app.pingpong.global.exception.ErrorCode;
 import com.app.pingpong.global.utils.SecurityUtils;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,8 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+
+import static com.app.pingpong.global.exception.ErrorCode.USER_EMAIL_ALREADY_EXISTS;
 
 @RequiredArgsConstructor
 @Service
@@ -200,7 +203,7 @@ public class OAuthService {
         return new UserOAuthResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
     }
 
-    public UserLoginResponse kakaoLogin(String accessToken) throws EmailAlreadyExistsException {
+    public UserLoginResponse kakaoLogin(String accessToken) {
         // 1. 액세스 토큰을 통해 유저의 정보를 가져옴
         UserOAuthResponse kakaoUserInfo = getKakaoUserInfo(accessToken);
         String email = kakaoUserInfo.getEmail();
@@ -217,7 +220,7 @@ public class OAuthService {
             );
         }
         else { // 저장 되어있다면?
-            user = userRepository.findByEmail(email).orElseThrow(() -> new EmailAlreadyExistsException());
+            user = userRepository.findByEmail(email).orElseThrow(() -> new BaseException(USER_EMAIL_ALREADY_EXISTS));
         }
 
         // 토큰 발급

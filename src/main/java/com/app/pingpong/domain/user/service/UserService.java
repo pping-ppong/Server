@@ -1,27 +1,25 @@
 package com.app.pingpong.domain.user.service;
 
+import com.app.pingpong.domain.facade.UserFacade;
 import com.app.pingpong.domain.user.dto.request.SignUpRequest;
 import com.app.pingpong.domain.user.dto.response.SearchHistoryResponse;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
-import com.app.pingpong.domain.user.dto.response.UserSearchRes;
+import com.app.pingpong.domain.user.dto.response.UserSearchResponse;
 import com.app.pingpong.domain.user.entity.SearchHistory;
 import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.SearchHistoryRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
-import com.app.pingpong.global.common.BaseResponse;
 import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.exception.BaseResultCode;
-import com.app.pingpong.global.exception.user.InvalidNickNameException;
-import com.app.pingpong.global.exception.user.NicknameAlreadyExistsException;
+import com.app.pingpong.global.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static com.app.pingpong.global.exception.BaseResultCode.DATABASE_ERROR;
-import static com.app.pingpong.global.exception.BaseResultCode.SEARCH_USER_NICKNAME_NOT_EXISTS;
+import static com.app.pingpong.global.exception.ErrorCode.*;
 import static com.app.pingpong.global.utils.ValidationRegex.isRegexNickname;
 
 @RequiredArgsConstructor
@@ -29,10 +27,11 @@ import static com.app.pingpong.global.utils.ValidationRegex.isRegexNickname;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserFacade userFacade;
     private final SearchHistoryRepository searchHistoryRepository;
 
     @Transactional
-    public UserResponse signup(SignUpRequest request) throws InvalidNickNameException {
+    public UserResponse signup(SignUpRequest request) {
         validateUserInfo(request);
         User user = userRepository.findBySocialIdx(request.getSocialIdx());
         user.setNickname(request.getNickname());
@@ -42,44 +41,53 @@ public class UserService {
 
     private void validateUserInfo(SignUpRequest request) {
         if (!isRegexNickname(request.getNickname())) {
-            throw new InvalidNickNameException();
+            throw new BaseException(INVALID_NICKNAME);
         }
     }
 
-    public BaseResponse validateNickname(String nickname) {
+    public void validateNickname(String nickname) {
         if (!isRegexNickname(nickname)) {
-            throw new InvalidNickNameException();
+            throw new BaseException(INVALID_NICKNAME);
         }
         if (userRepository.existsUserByNickname(nickname)) {
-            throw new NicknameAlreadyExistsException();
+            throw new BaseException(USER_NICKNAME_ALREADY_EXISTS);
         }
-        return new BaseResponse<>(true, BaseResultCode.SUCCESS_VALIDATE_NICKNAME.getMessage(), BaseResultCode.SUCCESS_VALIDATE_NICKNAME.getCode());
     }
 
-    public BaseResponse search(String nickname) {
-        User user = userRepository.findByNicknameContains(nickname);
-        if (user == null) {
-            throw new BaseException(SEARCH_USER_NICKNAME_NOT_EXISTS);
-        }
+    public void search(String nickname) {
+        List<User> findUser = userRepository.findByNicknameContains(nickname)
+                .orElseThrow(() -> new BaseException(SEARCH_USER_NICKNAME_NOT_EXISTS));
 
+        /*
+        List<UserSearchResponse> response = findUser.stream().map(user -> UserSearchResponse.builder()
+                .userIdx(user.getId())
+                .nickname(user.getNickname())
+                .profileImage(user.getProfileImage())
+                .build()
+        ).collect(Collectors.toList());
+        */
+
+        // 닉네임 내역 저장
+        userFacade.getCurrentUser();
+        /*
         SearchHistory history = SearchHistory.builder()
                 .content(nickname)
-                .user(user)
+                .user(currentUser)
                 .build();
-        searchHistoryRepository.save(history);
-        return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode(), user);
+        searchHistoryRepository.save(history); */
+        //return response;
     }
 
-    public BaseResponse findSearchHistory(Long userIdx) {
+    public List<SearchHistoryResponse> findSearchHistory(Long userIdx) {
         List<SearchHistory> history = searchHistoryRepository.findTop10ByUserIdOrderByIdDesc(userIdx);
         List<SearchHistoryResponse> findSearchHistory = new ArrayList<>();
         for (SearchHistory h : history) {
                 findSearchHistory.add(new SearchHistoryResponse(h.getId(), h.getContent()));
         }
-        return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode(), findSearchHistory);
+        return findSearchHistory;
     }
 
-    public BaseResponse findUserProfile(SignUpRequest signUpRequest) {
-        return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode());
+    public void findUserProfile(SignUpRequest signUpRequest) {
+        //return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode());
     }
 }

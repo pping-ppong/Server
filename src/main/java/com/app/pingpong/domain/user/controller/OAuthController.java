@@ -8,7 +8,6 @@ import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
 import com.app.pingpong.domain.user.service.OAuthService;
 import com.app.pingpong.domain.user.service.UserService;
-import com.app.pingpong.global.exception.user.EmailAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,14 +27,9 @@ public class OAuthController {
     @ResponseBody
     @PostMapping("/kakao")
     public ResponseEntity<UserLoginResponse> kakaoLogin(@RequestParam String code) {
-        try {
-            String accessToken = oauthService.getKakaoAccessToken(code);
-            UserLoginResponse kakaoLoginUser = oauthService.kakaoLogin(accessToken);
-            return new ResponseEntity<>(kakaoLoginUser, HttpStatus.OK);
-
-        } catch (EmailAlreadyExistsException e) {
-            throw new RuntimeException(e);
-        }
+        String accessToken = oauthService.getKakaoAccessToken(code);
+        UserLoginResponse kakaoLoginUser = oauthService.kakaoLogin(accessToken);
+        return new ResponseEntity<>(kakaoLoginUser, HttpStatus.OK);
     }
 
     /* 구글 로그인 */

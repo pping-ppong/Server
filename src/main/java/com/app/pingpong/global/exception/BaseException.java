@@ -2,11 +2,11 @@ package com.app.pingpong.global.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+
+import java.util.function.Supplier;
 
 @Getter
-@Setter
 @AllArgsConstructor
 public class BaseException extends RuntimeException {
-    private BaseResultCode code;
+    private ErrorCode errorCode;
 }

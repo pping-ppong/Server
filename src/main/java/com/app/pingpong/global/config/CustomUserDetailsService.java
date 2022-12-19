@@ -1,13 +1,11 @@
 package com.app.pingpong.global.config;
 
 import com.app.pingpong.domain.user.repository.UserRepository;
-import com.app.pingpong.global.exception.user.EmailAlreadyExistsException;
+import com.app.pingpong.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -18,11 +16,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        try {
-            return (UserDetails) userRepository.findByEmail(email)
-                    .orElseThrow(EmailAlreadyExistsException::new); //여기 수정필요
-        } catch (EmailAlreadyExistsException e) {
-            throw new RuntimeException(e);
-        }
+        return (UserDetails) userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(email));
     }
 }

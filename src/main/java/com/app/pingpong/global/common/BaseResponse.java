@@ -1,44 +1,29 @@
 package com.app.pingpong.global.common;
 
-import com.app.pingpong.global.exception.BaseResultCode;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import lombok.AllArgsConstructor;
+import com.app.pingpong.global.exception.ErrorCode;
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.http.ResponseEntity;
 
-import static com.app.pingpong.global.exception.BaseResultCode.SUCCESS;
+import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor
-@JsonPropertyOrder({"isSuccess", "code", "message", "result"})
-public class BaseResponse<T> {
-
-    @JsonProperty("isSuccess")
-    private Boolean isSuccess;
+@Builder
+public class BaseResponse {
+    private final LocalDateTime timestamp = LocalDateTime.now();
+    private final int status;
+    private final String error;
+    private final String code;
     private final String message;
-    private final int code;
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private T result;
-
-    public BaseResponse(T result) {
-        this.isSuccess = SUCCESS.isSuccess();
-        this.message = SUCCESS.getMessage();
-        this.code = SUCCESS.getCode();
-        this.result = result;
-    }
-
-    public BaseResponse(BaseResultCode status) {
-        this.isSuccess = status.isSuccess();
-        this.message = status.getMessage();
-        this.code = status.getCode();
-    }
-
-    public BaseResponse(boolean isSuccess, String message, int code) {
-        this.isSuccess = isSuccess;
-        this.message = message;
-        this.code = code;
+    public static ResponseEntity<BaseResponse> toResponseEntity(ErrorCode baseResultCode) {
+        return ResponseEntity
+                .status(baseResultCode.getHttpStatus())
+                .body(BaseResponse.builder()
+                        .status(baseResultCode.getHttpStatus().value())
+                        .error(baseResultCode.getHttpStatus().name())
+                        .code(baseResultCode.name())
+                        .message(baseResultCode.getMessage())
+                        .build());
     }
 }

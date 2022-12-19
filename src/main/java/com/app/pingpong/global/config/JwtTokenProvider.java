@@ -2,7 +2,7 @@ package com.app.pingpong.global.config;
 
 import com.app.pingpong.domain.user.dto.response.TokenResponse;
 import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.exception.BaseResultCode;
+import com.app.pingpong.global.exception.ErrorCode;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -66,8 +66,9 @@ public class JwtTokenProvider {
 
     public Authentication getAuthentication(String accessToken) {
         // 토큰 복호화
-        Claims claims = Jwts.parser()
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
+                .build()
                 .parseClaimsJws(accessToken)
                 .getBody();
         if (claims.get(AUTHORITIES_KEY) == null) {
@@ -88,11 +89,11 @@ public class JwtTokenProvider {
     /* 토큰 검증*/
     public boolean validateToken(String token) throws BaseException {
         try {
-            Jwts.parser().setSigningKey(key).parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (JwtException e) {
             System.out.println("======== 토큰 잘못됨 =========");
-            throw new BaseException(BaseResultCode.USER_EMAIL_ALREADY_EXISTS);
+            throw new BaseException(ErrorCode.USER_EMAIL_ALREADY_EXISTS);
         }
     }
 }

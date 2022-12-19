@@ -11,6 +11,7 @@ public class SecurityUtils {
         if (loginUser == null || loginUser.getName() == null) {
             throw new RuntimeException("Security Context에 인증 정보가 없습니다.");
         }
+        System.out.println("출력 정보 : " + Long.parseLong(loginUser.getName()));
         return Long.parseLong(loginUser.getName());
     }
 }
