@@ -1,5 +1,6 @@
 package com.app.pingpong.global.config;
 
+import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.app.pingpong.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return (UserDetails) userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(email));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(""));
+
+        System.out.println(user.getNickname());
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(user.getEmail())
+                .password("password")
+                .roles("USER")
+                .build();
     }
 }

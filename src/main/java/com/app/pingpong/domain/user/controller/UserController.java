@@ -41,10 +41,9 @@ public class UserController {
     }
 
     /* 유저 검색 by 닉네임*/
-    @ResponseBody
     @GetMapping("/search")
-    public void search(@RequestParam("nickname") String nickname) {
-        userService.search(nickname);
+    public List<UserSearchResponse> search(@RequestParam("nickname") String nickname) {
+        return userService.search(nickname);
     }
 
     /* 해당 유저의 검색 기록 조회 */

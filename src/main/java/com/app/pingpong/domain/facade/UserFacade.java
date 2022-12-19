@@ -16,11 +16,10 @@ public class UserFacade {
 
     private final UserRepository userRepository;
 
-    public void getCurrentUser() {
+    public User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        System.out.println("출력이 뭐가 될까? ? : " + email);
         if(email.equals("anonymousUser"))
             throw new BaseException(INVALID_USER);
-        //return userRepository.findByUserIdx(userIdx).orElseThrow(() -> new BaseException(INVALID_USER));
+        return userRepository.findByEmail(email).orElseThrow(() -> new BaseException(INVALID_USER));
     }
 }

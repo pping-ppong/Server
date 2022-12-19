@@ -54,28 +54,27 @@ public class UserService {
         }
     }
 
-    public void search(String nickname) {
+    public List<UserSearchResponse> search(String nickname) {
         List<User> findUser = userRepository.findByNicknameContains(nickname)
                 .orElseThrow(() -> new BaseException(SEARCH_USER_NICKNAME_NOT_EXISTS));
 
-        /*
+
         List<UserSearchResponse> response = findUser.stream().map(user -> UserSearchResponse.builder()
                 .userIdx(user.getId())
                 .nickname(user.getNickname())
                 .profileImage(user.getProfileImage())
                 .build()
         ).collect(Collectors.toList());
-        */
+
 
         // 닉네임 내역 저장
-        userFacade.getCurrentUser();
-        /*
+        User currentUser = userFacade.getCurrentUser();
         SearchHistory history = SearchHistory.builder()
                 .content(nickname)
                 .user(currentUser)
                 .build();
-        searchHistoryRepository.save(history); */
-        //return response;
+        searchHistoryRepository.save(history);
+        return response;
     }
 
     public List<SearchHistoryResponse> findSearchHistory(Long userIdx) {

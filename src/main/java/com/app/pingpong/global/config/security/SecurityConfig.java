@@ -26,10 +26,10 @@ public class SecurityConfig {
                 .csrf().disable()
                 .cors().disable()
 
-                //.exceptionHandling()
-                //.authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                //.accessDeniedHandler(jwtAccessDeniedHandler)
-                //.and()
+                .exceptionHandling()
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                .accessDeniedHandler(jwtAccessDeniedHandler)
+                .and()
 
                 // 시큐리티는 기본적으로 세션을 사용하나 여기서는 사용하지 않도록 stateless로 설정한다.
                 .sessionManagement()
@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .and()
 
                 .authorizeHttpRequests()
-                .requestMatchers("/oauth/**", "/app/users/**").permitAll() // 여기는 인증 필요 없음
+                .requestMatchers("/oauth/**", "/app/users/sign-up").permitAll() // 여기는 인증 필요 없음
                 .anyRequest().authenticated()// 나머지 API는 모두 인증 필요
                 .and()
 
