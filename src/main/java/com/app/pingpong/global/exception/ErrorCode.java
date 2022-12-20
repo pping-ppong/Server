@@ -11,8 +11,8 @@ import static org.springframework.http.HttpStatus.*;
 public enum ErrorCode {
 
     /* 200 */
-    //SUCCESS_BASE(SUCCESS, "요청에 성공하였습니다."),
-    //SUCCESS_VALIDATE_NICKNAME(SUCCESS, "닉네임 검사에 성공하였습니다."),
+    SUCCESS(OK, "요청에 성공하였습니다."),
+    SUCCESS_VALIDATE_NICKNAME(OK, "닉네임 검사에 성공하였습니다."),
 
     /* 400 : Bad Request   */
     USER_EMAIL_ALREADY_EXISTS(BAD_REQUEST, "이미 사용 중인 이메일입니다."),
@@ -21,8 +21,7 @@ public enum ErrorCode {
     INVALID_NICKNAME(BAD_REQUEST, "형식에 맞지 않는 닉네임입니다."),
 
     /* 404 : NOT FOUND */
-    EMAIL_NOT_FOUND(NOT_FOUND, "존재하지 않는 이메일입니다."),
-
+    EMAIL_NOT_FOUND(NOT_FOUND, "존재하지 않는 이메일입니다, 회원가입을 해주세요."),
 
     /* 409 */
     DUPLICATE_RESOURCE(CONFLICT, "데이터가 이미 존재합니다"),

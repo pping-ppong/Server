@@ -21,12 +21,16 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.stream.Collectors;
 
+import static com.app.pingpong.global.exception.ErrorCode.DATABASE_ERROR;
+
 @Component
 public class JwtTokenProvider {
 
     private static final String AUTHORITIES_KEY = "auth";
     private static final String BEARER_TYPE = "Bearer";
-    @Value("${jwt.token.expire-length}") private long ACCESS_TOKEN_EXPIRE_TIME;
+    private static final long ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 60;
+    private static final long REFRESH_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24 * 7;  // 7일
+
     private final Key key;
 
     public JwtTokenProvider(@Value("${jwt.token.secret-key}") String secretKey) {
@@ -52,12 +56,12 @@ public class JwtTokenProvider {
 
         // 3. 리프레시 토큰 생성
         String refreshToken = Jwts.builder()
-                .setExpiration(accessTokenExpiresIn)
+                .setExpiration(new Date(now + REFRESH_TOKEN_EXPIRE_TIME))
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
 
         return TokenResponse.builder()
-                .grantType("Bearer")
+                .grantType(BEARER_TYPE)
                 .accessToken(accessToken)
                 .accessTokenExpiresIn(accessTokenExpiresIn.getTime())
                 .refreshToken(refreshToken)
@@ -71,6 +75,7 @@ public class JwtTokenProvider {
                 .build()
                 .parseClaimsJws(accessToken)
                 .getBody();
+
         if (claims.get(AUTHORITIES_KEY) == null) {
             throw new RuntimeException("권한 정보가 없는 토큰입니다.");
         }
@@ -92,8 +97,7 @@ public class JwtTokenProvider {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (JwtException e) {
-            System.out.println("======== 토큰 잘못됨 =========");
-            throw new BaseException(ErrorCode.USER_EMAIL_ALREADY_EXISTS);
+            throw new BaseException(DATABASE_ERROR);
         }
     }
 }

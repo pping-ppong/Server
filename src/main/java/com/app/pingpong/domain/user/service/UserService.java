@@ -9,12 +9,16 @@ import com.app.pingpong.domain.user.entity.SearchHistory;
 import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.SearchHistoryRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
+import com.app.pingpong.global.common.BaseResponse;
 import com.app.pingpong.global.exception.BaseException;
 import com.app.pingpong.global.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.rowset.BaseRowSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,37 +31,30 @@ import static com.app.pingpong.global.utils.ValidationRegex.isRegexNickname;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     private final UserFacade userFacade;
     private final SearchHistoryRepository searchHistoryRepository;
 
     @Transactional
-    public UserResponse signup(SignUpRequest request) {
-        validateUserInfo(request);
-        User user = userRepository.findBySocialIdx(request.getSocialIdx());
-        user.setNickname(request.getNickname());
-        user.setProfileImage(request.getProfileImage());
-        return new UserResponse(user.getId());
+    public UserResponse signup(SignUpRequest signUpRequest) {
+        User user = signUpRequest.toEntity(passwordEncoder);
+        return UserResponse.of(userRepository.save(user));
     }
 
-    private void validateUserInfo(SignUpRequest request) {
-        if (!isRegexNickname(request.getNickname())) {
-            throw new BaseException(INVALID_NICKNAME);
-        }
-    }
-
-    public void validateNickname(String nickname) {
+    @Transactional
+    public ResponseEntity<BaseResponse> validateNickname(String nickname) {
         if (!isRegexNickname(nickname)) {
             throw new BaseException(INVALID_NICKNAME);
         }
         if (userRepository.existsUserByNickname(nickname)) {
             throw new BaseException(USER_NICKNAME_ALREADY_EXISTS);
         }
+        return BaseResponse.toResponseEntity(SUCCESS);
     }
 
     public List<UserSearchResponse> search(String nickname) {
         List<User> findUser = userRepository.findByNicknameContains(nickname)
                 .orElseThrow(() -> new BaseException(SEARCH_USER_NICKNAME_NOT_EXISTS));
-
 
         List<UserSearchResponse> response = findUser.stream().map(user -> UserSearchResponse.builder()
                 .userIdx(user.getId())

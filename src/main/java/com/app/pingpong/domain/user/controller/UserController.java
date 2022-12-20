@@ -5,6 +5,7 @@ import com.app.pingpong.domain.user.dto.response.SearchHistoryResponse;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
 import com.app.pingpong.domain.user.dto.response.UserSearchResponse;
 import com.app.pingpong.domain.user.service.UserService;
+import com.app.pingpong.global.common.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,15 +23,15 @@ public class UserController {
     /* 회원가입 */
     @ResponseBody
     @PostMapping("/sign-up")
-    public ResponseEntity<UserResponse> singUp(@RequestBody SignUpRequest signUpRequest) {
-        return new ResponseEntity<>(userService.signup(signUpRequest), HttpStatus.OK);
+    public UserResponse singUp(@RequestBody SignUpRequest signUpRequest) {
+        return userService.signup(signUpRequest);
     }
 
     /* 회원가입 시 닉네임 유효성 검사 */
     @ResponseBody
     @PostMapping("/validate")
-    public void validateNickname(@RequestParam String nickname) {
-        userService.validateNickname(nickname);
+    public ResponseEntity<BaseResponse> validateNickname(@RequestParam String nickname) {
+        return userService.validateNickname(nickname);
     }
 
     /* 자신의 조회 - 마이페이지 */

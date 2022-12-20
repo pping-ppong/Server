@@ -10,15 +10,13 @@ import com.app.pingpong.domain.user.repository.RefreshTokenRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.app.pingpong.global.config.JwtTokenProvider;
 import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.exception.ErrorCode;
-import com.app.pingpong.global.utils.SecurityUtils;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonElement;
@@ -29,13 +27,14 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 
-import static com.app.pingpong.global.exception.ErrorCode.USER_EMAIL_ALREADY_EXISTS;
+import static com.app.pingpong.global.exception.ErrorCode.*;
 
 @RequiredArgsConstructor
 @Service
 public class OAuthService {
 
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -73,8 +72,6 @@ public class OAuthService {
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
             StringBuilder sb = new StringBuilder();
             sb.append("grant_type=authorization_code");
-            //sb.append("&client_id=1f6fddb56b60c6bedd26a879812f0a7c"); // TODO REST_API_KEY 입력
-            //sb.append("&redirect_uri=http://localhost:8080/app/users/kakao"); // TODO 인가코드 받은 redirect_uri 입력
             sb.append("&client_id="+kakao_client_id);
             sb.append("&redirect_uri="+kakao_redirect_uri);
             sb.append("&code=" + code);
@@ -204,27 +201,19 @@ public class OAuthService {
     }
 
     public UserLoginResponse kakaoLogin(String accessToken) {
-        // 1. 액세스 토큰을 통해 유저의 정보를 가져옴
         UserOAuthResponse kakaoUserInfo = getKakaoUserInfo(accessToken);
         String email = kakaoUserInfo.getEmail();
+        String socialIdx = kakaoUserInfo.getSocialIdx();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new BaseException(EMAIL_NOT_FOUND));
 
-        User user;
-        // 가입된 유저가 아니라면 DB에 저장 -> 닉네임과 프로필 사진이 null이면 회원가입을 진행하도록 클라이언트에게 알림
-        if (!userRepository.existsUserByEmail(email)) {
-            user = userRepository.save(User.builder()
-                    .socialIdx(Long.valueOf(kakaoUserInfo.getSocialIdx()))
-                    .email(kakaoUserInfo.getEmail())
-                    .nickname(null)
-                    .profileImage(null)
-                    .build()
-            );
-        }
-        else { // 저장 되어있다면?
-            user = userRepository.findByEmail(email).orElseThrow(() -> new BaseException(USER_EMAIL_ALREADY_EXISTS));
-        }
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email, socialIdx);
+        System.out.println("sout : " + authenticationToken.getName());
+        System.out.println("sout : " + authenticationToken.getPrincipal());
+        System.out.println("sout : " + authenticationToken.getCredentials());
 
-        // 토큰 발급
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+
         TokenResponse tokenResponse = jwtTokenProvider.createToken(authentication);
         RefreshToken refreshToken = RefreshToken.builder()
                 .key(authentication.getName())
@@ -232,8 +221,7 @@ public class OAuthService {
                 .build();
         refreshTokenRepository.save(refreshToken);
 
-        return new UserLoginResponse(user.getId(), user.getSocialIdx(), user.getEmail(),
-                user.getNickname(), user.getProfileImage(), tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
+        return UserLoginResponse.of(user, tokenResponse);
     }
 
     @Transactional

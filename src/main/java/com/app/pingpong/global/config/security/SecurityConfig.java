@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.*;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @RequiredArgsConstructor
@@ -21,10 +23,16 @@ public class SecurityConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf().disable()
                 .cors().disable()
+                .formLogin().disable()
 
                 .exceptionHandling()
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
@@ -36,11 +44,11 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
 
-                .authorizeHttpRequests()
-                .requestMatchers("/oauth/**", "/app/users/sign-up").permitAll() // 여기는 인증 필요 없음
-                .anyRequest().authenticated()// 나머지 API는 모두 인증 필요
-                .and()
-
+                .securityMatcher("/app/**")
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/oauth/kakao", "/app/users/sign-up").permitAll()
+                        .anyRequest().authenticated()
+                )
                 .apply(new JwtSecurityConfig(jwtTokenProvider));
 
                 //.and()
