@@ -63,7 +63,6 @@ public class UserService {
                 .build()
         ).collect(Collectors.toList());
 
-
         // 닉네임 내역 저장
         User currentUser = userFacade.getCurrentUser();
         SearchHistory history = SearchHistory.builder()

@@ -20,8 +20,11 @@ public enum ErrorCode {
     SEARCH_USER_NICKNAME_NOT_EXISTS(BAD_REQUEST, "해당 닉네임의 사용자가 존재하지않습니다."),
     INVALID_NICKNAME(BAD_REQUEST, "형식에 맞지 않는 닉네임입니다."),
 
+    INVALID_GROUP_MEMBER(BAD_REQUEST, "그룹 호스트(자기 자신)은/는 초대할 수 없습니다."),
+
     /* 404 : NOT FOUND */
     EMAIL_NOT_FOUND(NOT_FOUND, "존재하지 않는 이메일입니다, 회원가입을 해주세요."),
+    USER_NOT_FOUND(NOT_FOUND, "존재하지 않는 유저입니다."),
 
     /* 409 */
     DUPLICATE_RESOURCE(CONFLICT, "데이터가 이미 존재합니다"),

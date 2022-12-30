@@ -1,5 +1,6 @@
 package com.app.pingpong.domain.user.entity;
 
+import com.app.pingpong.domain.group.entity.Team;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,6 +25,10 @@ public class User {
 
     private String profileImage;
 
+    @ManyToOne
+    @JoinColumn(name = "team_id")
+    private Team team;
+
     @Enumerated
     private Authority authority;
 
@@ -36,11 +41,14 @@ public class User {
         this.authority = authority;
     }
 
-    public void setProfileImage(String profileImage) {
-        this.profileImage = profileImage;
+    @Builder
+    public User(String nickname, Team team) {
+        this.nickname = nickname;
+        this.team = team;
     }
 
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
+    public void setTeam(Team team) {
+        this.team = team;
     }
+
 }
