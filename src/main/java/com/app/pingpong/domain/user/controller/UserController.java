@@ -23,14 +23,14 @@ public class UserController {
     /* 회원가입 */
     @ResponseBody
     @PostMapping("/sign-up")
-    public UserResponse singUp(@RequestBody SignUpRequest signUpRequest) {
-        return userService.signup(signUpRequest);
+    public BaseResponse<UserResponse> singUp(@RequestBody SignUpRequest signUpRequest) {
+        return new BaseResponse<>(userService.signup(signUpRequest));
     }
 
     /* 회원가입 시 닉네임 유효성 검사 */
     @ResponseBody
     @PostMapping("/validate")
-    public ResponseEntity<BaseResponse> validateNickname(@RequestParam String nickname) {
+    public BaseResponse<String> validateNickname(@RequestParam String nickname) {
         return userService.validateNickname(nickname);
     }
 

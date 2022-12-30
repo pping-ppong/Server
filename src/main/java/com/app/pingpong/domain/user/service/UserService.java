@@ -42,14 +42,14 @@ public class UserService {
     }
 
     @Transactional
-    public ResponseEntity<BaseResponse> validateNickname(String nickname) {
+    public BaseResponse<String> validateNickname(String nickname) {
         if (!isRegexNickname(nickname)) {
             throw new BaseException(INVALID_NICKNAME);
         }
         if (userRepository.existsUserByNickname(nickname)) {
             throw new BaseException(USER_NICKNAME_ALREADY_EXISTS);
         }
-        return BaseResponse.toResponseEntity(SUCCESS);
+        return new BaseResponse(SUCCESS_VALIDATE_NICKNAME);
     }
 
     public List<UserSearchResponse> search(String nickname) {

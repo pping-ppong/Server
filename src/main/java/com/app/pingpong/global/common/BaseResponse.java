@@ -1,29 +1,32 @@
 package com.app.pingpong.global.common;
 
 import com.app.pingpong.global.exception.ErrorCode;
-import lombok.Builder;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 
+import static com.app.pingpong.global.exception.ErrorCode.SUCCESS;
+
 @Getter
-@Builder
-public class BaseResponse {
-    private final LocalDateTime timestamp = LocalDateTime.now();
-    private final int status;
-    private final String error;
-    private final String code;
+@AllArgsConstructor
+public class BaseResponse<T> {
+    private final HttpStatus code;
     private final String message;
 
-    public static ResponseEntity<BaseResponse> toResponseEntity(ErrorCode baseResultCode) {
-        return ResponseEntity
-                .status(baseResultCode.getHttpStatus())
-                .body(BaseResponse.builder()
-                        .status(baseResultCode.getHttpStatus().value())
-                        .error(baseResultCode.getHttpStatus().name())
-                        .code(baseResultCode.name())
-                        .message(baseResultCode.getMessage())
-                        .build());
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private T result;
+
+    public BaseResponse(T result) {
+        this.message = SUCCESS.getMessage();
+        this.code = SUCCESS.getHttpStatus();
+        this.result = result;
+    }
+
+    public BaseResponse(ErrorCode status) {
+        this.message = status.getMessage();
+        this.code = status.getHttpStatus();
     }
 }
