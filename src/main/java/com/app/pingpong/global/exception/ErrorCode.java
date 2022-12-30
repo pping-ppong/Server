@@ -21,6 +21,7 @@ public enum ErrorCode {
     INVALID_NICKNAME(BAD_REQUEST, "형식에 맞지 않는 닉네임입니다."),
 
     INVALID_GROUP_MEMBER(BAD_REQUEST, "그룹 호스트(자기 자신)은/는 초대할 수 없습니다."),
+    INVALID_SOCIAL_TYPE(BAD_REQUEST, "소셜로그인 타입의 형식을 확인해주세요."),
 
     /* 404 : NOT FOUND */
     EMAIL_NOT_FOUND(NOT_FOUND, "존재하지 않는 이메일입니다, 회원가입을 해주세요."),

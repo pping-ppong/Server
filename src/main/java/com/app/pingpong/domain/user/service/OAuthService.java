@@ -1,10 +1,13 @@
 package com.app.pingpong.domain.user.service;
 
 import com.app.pingpong.domain.user.dto.request.TokenRequest;
+import com.app.pingpong.domain.user.dto.request.UserInfoRequest;
+import com.app.pingpong.domain.user.dto.request.UserOauthRequest;
 import com.app.pingpong.domain.user.dto.response.TokenResponse;
 import com.app.pingpong.domain.user.dto.response.UserLoginResponse;
 import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
 import com.app.pingpong.domain.user.entity.RefreshToken;
+import com.app.pingpong.domain.user.entity.SocialLoginType;
 import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.RefreshTokenRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
@@ -39,12 +42,6 @@ public class OAuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
-    private String kakao_client_id;
-
-    @Value("${spring.security.oauth2.client.registration.kakao.redirect-uri}")
-    private String kakao_redirect_uri;
-
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String google_client_id;
 
@@ -54,27 +51,46 @@ public class OAuthService {
     @Value("${spring.security.oauth2.client.registration.google.client-secret}")
     private String google_client_secret;
 
-    @Value("${spring.security.oauth2.client.registration.google.scope}")
-    private String google_scope;
+    @Value("${request-url.kakao}")
+    private String kakao_request_url;
 
-    /* 액세스 토큰 발급 */
-    public String getKakaoAccessToken (String code) {
+    public UserOAuthResponse getUserInfo(UserInfoRequest request) {
+        String requestUrl;
+        String etcUrl;
+        UserOAuthResponse userInfo = null;
+
+        switch (request.getSocialType()) {
+            case "KAKAO": {
+                requestUrl = "https://kauth.kakao.com/oauth/token";
+                etcUrl = kakao_request_url + request.getCode();
+                String accessToken = getUserAccessToken(requestUrl, etcUrl);
+                userInfo = getKakaoUserInfo(accessToken);
+                break;
+            }
+
+            case "GOOGLE": {
+                requestUrl = "https://oauth2.googleapis.com/token";
+                etcUrl = "code=" + request.getCode() + "&client_id=" + google_client_id + "&client_secret=" + google_client_secret + "&redirect_uri=" + google_redirect_uri + "&grant_type=authorization_code";
+                break;
+            }
+
+            default:
+                throw new BaseException(INVALID_SOCIAL_TYPE);
+        }
+        return userInfo;
+    }
+
+    private String getUserAccessToken(String requestUrl, String etcUrl) {
         String accessToken = "";
-        String refreshToken = "";
-        String reqURL = "https://kauth.kakao.com/oauth/token";
-
         try {
-            URL url = new URL(reqURL);
+            URL url = new URL(requestUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
 
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
             StringBuilder sb = new StringBuilder();
-            sb.append("grant_type=authorization_code");
-            sb.append("&client_id="+kakao_client_id);
-            sb.append("&redirect_uri="+kakao_redirect_uri);
-            sb.append("&code=" + code);
+            sb.append(etcUrl);
             bw.write(sb.toString());
             bw.flush();
 
@@ -88,19 +104,16 @@ public class OAuthService {
 
             JsonElement element = JsonParser.parseString(result);
             accessToken = element.getAsJsonObject().get("access_token").getAsString();
-            refreshToken = element.getAsJsonObject().get("refresh_token").getAsString();
 
             br.close();
             bw.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return accessToken;
     }
 
-    /* 사용자 정보를 가져옴 : 소설식별자, 이메일 */
-    public UserOAuthResponse getKakaoUserInfo(String accessToken) {
+    private UserOAuthResponse getKakaoUserInfo(String accessToken) {
         HashMap<String, Object> userInfo = new HashMap<>();
         String reqURL = "https://kapi.kakao.com/v2/user/me";
 
@@ -131,46 +144,7 @@ public class OAuthService {
         return new UserOAuthResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
     }
 
-    public String getGoogleAccessToken (String code) {
-        String accessToken = "";
-        String reqURL = "https://oauth2.googleapis.com/token";
-
-        try {
-            URL url = new URL(reqURL);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-
-            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
-            StringBuilder sb = new StringBuilder();
-            sb.append("code=" + code);
-            sb.append("&client_id=" + google_client_id);
-            sb.append("&client_secret=" + google_client_secret);
-            sb.append("&redirect_uri=" + google_redirect_uri);
-            sb.append("&grant_type=authorization_code");
-            bw.write(sb.toString());
-            bw.flush();
-
-            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String line = "";
-            String result = "";
-
-            while ((line = br.readLine()) != null) {
-                result += line;
-            }
-
-            JsonElement element = JsonParser.parseString(result);
-            accessToken = element.getAsJsonObject().get("access_token").getAsString();
-
-            br.close();
-            bw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return accessToken;
-    }
-
-    public UserOAuthResponse getGoogleUserInfo(String accessToken) {
+    private UserOAuthResponse getGoogleUserInfo(String accessToken) {
         HashMap<String, Object> userInfo = new HashMap<>();
         String reqURL = "https://www.googleapis.com/oauth2/v2/userinfo";
 
@@ -200,27 +174,18 @@ public class OAuthService {
         return new UserOAuthResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
     }
 
-    public UserLoginResponse kakaoLogin(String accessToken) {
-        UserOAuthResponse kakaoUserInfo = getKakaoUserInfo(accessToken);
-        String email = kakaoUserInfo.getEmail();
-        String socialIdx = kakaoUserInfo.getSocialIdx();
+    public UserLoginResponse login(UserOauthRequest request) {
+        String email = request.getEmail();
+        String socialIdx = request.getSocialIdx();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new BaseException(EMAIL_NOT_FOUND));
-
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email, socialIdx);
-        System.out.println("sout : " + authenticationToken.getName());
-        System.out.println("sout : " + authenticationToken.getPrincipal());
-        System.out.println("sout : " + authenticationToken.getCredentials());
-
-
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-
         TokenResponse tokenResponse = jwtTokenProvider.createToken(authentication);
         RefreshToken refreshToken = RefreshToken.builder()
                 .key(authentication.getName())
                 .value(tokenResponse.getRefreshToken())
                 .build();
         refreshTokenRepository.save(refreshToken);
-
         return UserLoginResponse.of(user, tokenResponse);
     }
 

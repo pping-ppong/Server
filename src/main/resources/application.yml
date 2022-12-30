@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
       show-sql: true
 
   security:
@@ -40,6 +40,11 @@ jwt:
   token:
     secret-key: Q4NSl604sgyHJj1qwEkR3ycUeR4uUAt7WJraD7EN3O9DVM4yyYuHxMEbSF4XXyYJkal13eqgB0F7Bq4Hsajlshjdfahlskjfhalsjfdkdahslfjkafhsldjfhldajfhksdahlf
     expire-length: 86400
+
+request-url:
+    kakao: "grant_type=authorization_code&client_id=1f6fddb56b60c6bedd26a879812f0a7c&redirect_uri=http://localhost:8080/app/users/kakao&code="
+    google:
+
 
 properties:
   hibernate:
