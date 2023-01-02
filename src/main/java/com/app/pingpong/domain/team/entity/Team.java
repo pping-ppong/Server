@@ -1,4 +1,4 @@
-package com.app.pingpong.domain.group.entity;
+package com.app.pingpong.domain.team.entity;
 
 import com.app.pingpong.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -23,9 +25,8 @@ public class Team {
     @OneToOne
     private User host;
 
-    //@OneToMany(mappedBy = "group")
-    @OneToMany
-    private List<User> members = new ArrayList<>();
+    @OneToMany(mappedBy = "team")
+    private List<UserTeam> members = new ArrayList<>();
 
     @Builder
     public Team(String name) {
@@ -34,14 +35,6 @@ public class Team {
 
     public void setHost(User host) {
         this.host = host;
-    }
-
-    public List<Long> getTeamUserIdx(Team team) {
-        List<Long> teamUserIdx = new ArrayList<>();
-        for (User u : team.getMembers()) {
-            teamUserIdx.add(u.getId());
-        }
-        return teamUserIdx;
     }
 }
 

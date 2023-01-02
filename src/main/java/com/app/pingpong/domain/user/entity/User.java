@@ -1,12 +1,14 @@
 package com.app.pingpong.domain.user.entity;
 
-import com.app.pingpong.domain.group.entity.Team;
+import com.app.pingpong.domain.team.entity.Team;
+import com.app.pingpong.domain.team.entity.UserTeam;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
+@Setter
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,12 +27,11 @@ public class User {
 
     private String profileImage;
 
-    @ManyToOne
-    @JoinColumn(name = "team_id")
-    private Team team;
-
     @Enumerated
     private Authority authority;
+
+    @OneToMany(mappedBy = "user")
+    private List<UserTeam> userTeams = new ArrayList<>();
 
     @Builder
     public User(String socialIdx, String email, String nickname, String profileImage, Authority authority) {
@@ -41,14 +42,9 @@ public class User {
         this.authority = authority;
     }
 
-    @Builder
-    public User(String nickname, Team team) {
-        this.nickname = nickname;
-        this.team = team;
-    }
-
     public void setTeam(Team team) {
-        this.team = team;
+        UserTeam userTeam = new UserTeam(this, team);
+        this.userTeams.add(userTeam);
+        team.getMembers().add(userTeam);
     }
-
 }
