@@ -28,7 +28,7 @@ public class TeamService {
     private final UserFacade userFacade;
 
     public TeamResponse createGroup(TeamRequest groupRequest) {
-        if (groupRequest.getMemberIdx().size() > 10) {
+        if (groupRequest.getMemberIdx().size() > 10 || groupRequest.getMemberIdx().size() < 1) {
             throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
         }
 
@@ -36,6 +36,8 @@ public class TeamService {
         if (teamRepository.findByHostId(currentUser.getId()).size() > 6) {
             throw new BaseException(EXCEED_HOST_TEAM_SIZE);
         }
+
+
 
         Team team = Team.builder()
                 .name(groupRequest.getGroupName())
