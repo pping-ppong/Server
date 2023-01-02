@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.app.pingpong.global.exception.ErrorCode.*;
 
@@ -27,12 +28,20 @@ public class TeamService {
     private final UserFacade userFacade;
 
     public TeamResponse createGroup(TeamRequest groupRequest) {
+        if (groupRequest.getMemberIdx().size() > 10) {
+            throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
+        }
+
+        User currentUser = userFacade.getCurrentUser();
+        if (teamRepository.findByHostId(currentUser.getId()).size() > 6) {
+            throw new BaseException(EXCEED_HOST_TEAM_SIZE);
+        }
+
         Team team = Team.builder()
                 .name(groupRequest.getGroupName())
                 .build();
         Team newTeam = teamRepository.save(team);
 
-        User currentUser = userFacade.getCurrentUser();
         for (Long memberIdx : groupRequest.getMemberIdx()) {
             UserTeam userTeam = new UserTeam();
             userTeam.setTeam(newTeam);
@@ -40,7 +49,7 @@ public class TeamService {
             if (memberIdx == currentUser.getId()) {
                 throw  new BaseException(INVALID_GROUP_MEMBER);
             }
-            User user = userRepository.findById(memberIdx).orElseThrow();
+            User user = userRepository.findById(memberIdx).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
             userTeam.setUser(user);
             userTeamRepository.save(userTeam);
         }
