@@ -7,6 +7,7 @@ import com.app.pingpong.domain.user.dto.response.TokenResponse;
 import com.app.pingpong.domain.user.dto.response.UserLoginResponse;
 import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
 import com.app.pingpong.domain.user.service.OAuthService;
+import com.app.pingpong.global.common.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +22,14 @@ public class OauthController {
 
     @ResponseBody
     @GetMapping("/info")
-    public UserOAuthResponse getUserInfo(@RequestBody UserInfoRequest request) {
-        return oauthService.getUserInfo(request);
+    public BaseResponse<UserOAuthResponse> getUserInfo(@RequestBody UserInfoRequest request) {
+        return new BaseResponse<>(oauthService.getUserInfo(request));
     }
 
     @ResponseBody
     @PostMapping("/login")
-    public UserLoginResponse login(@RequestBody UserOauthRequest request) {
-       return oauthService.login(request);
+    public BaseResponse<UserLoginResponse> login(@RequestBody UserOauthRequest request) {
+       return new BaseResponse<>(oauthService.login(request));
     }
 
     @ResponseBody
@@ -36,5 +37,4 @@ public class OauthController {
     public ResponseEntity<TokenResponse> reissue(@RequestBody TokenRequest request) {
         return new ResponseEntity<>(oauthService.reissue(request), HttpStatus.OK);
     }
-
 }

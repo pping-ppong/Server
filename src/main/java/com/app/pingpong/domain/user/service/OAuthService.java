@@ -11,6 +11,7 @@ import com.app.pingpong.domain.user.entity.SocialLoginType;
 import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.RefreshTokenRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
+import com.app.pingpong.global.common.BaseResponse;
 import com.app.pingpong.global.config.JwtTokenProvider;
 import com.app.pingpong.global.exception.BaseException;
 import com.google.gson.JsonObject;
