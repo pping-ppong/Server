@@ -42,14 +42,8 @@ public class OAuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    @Value("${spring.security.oauth2.client.registration.google.client-id}")
-    private String google_client_id;
-
-    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
-    private String google_redirect_uri;
-
-    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
-    private String google_client_secret;
+    @Value("${request-url.google}")
+    private String google_request_url;
 
     @Value("${request-url.kakao}")
     private String kakao_request_url;
@@ -63,24 +57,42 @@ public class OAuthService {
             case "KAKAO": {
                 requestUrl = "https://kauth.kakao.com/oauth/token";
                 etcUrl = kakao_request_url + request.getCode();
-                String accessToken = getUserAccessToken(requestUrl, etcUrl);
+                String accessToken = getAccessToken(requestUrl, etcUrl);
                 userInfo = getKakaoUserInfo(accessToken);
                 break;
             }
 
             case "GOOGLE": {
                 requestUrl = "https://oauth2.googleapis.com/token";
-                etcUrl = "code=" + request.getCode() + "&client_id=" + google_client_id + "&client_secret=" + google_client_secret + "&redirect_uri=" + google_redirect_uri + "&grant_type=authorization_code";
+                etcUrl = "code=" + request.getCode() + google_request_url;
+                String accessToken = getAccessToken(requestUrl, etcUrl);
+                userInfo = getGoogleUserInfo(accessToken);
                 break;
             }
 
             default:
                 throw new BaseException(INVALID_SOCIAL_TYPE);
         }
+
         return userInfo;
     }
 
-    private String getUserAccessToken(String requestUrl, String etcUrl) {
+    public UserLoginResponse login(UserOauthRequest request) {
+        String email = request.getEmail();
+        String socialIdx = request.getSocialIdx();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new BaseException(EMAIL_NOT_FOUND));
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email, socialIdx);
+        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        TokenResponse tokenResponse = jwtTokenProvider.createToken(authentication);
+        RefreshToken refreshToken = RefreshToken.builder()
+                .key(authentication.getName())
+                .value(tokenResponse.getRefreshToken())
+                .build();
+        refreshTokenRepository.save(refreshToken);
+        return UserLoginResponse.of(user, tokenResponse);
+    }
+
+    private String getAccessToken(String requestUrl, String etcUrl) {
         String accessToken = "";
         try {
             URL url = new URL(requestUrl);
@@ -174,20 +186,7 @@ public class OAuthService {
         return new UserOAuthResponse((String)userInfo.get("id"), (String)userInfo.get("email"));
     }
 
-    public UserLoginResponse login(UserOauthRequest request) {
-        String email = request.getEmail();
-        String socialIdx = request.getSocialIdx();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new BaseException(EMAIL_NOT_FOUND));
-        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email, socialIdx);
-        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-        TokenResponse tokenResponse = jwtTokenProvider.createToken(authentication);
-        RefreshToken refreshToken = RefreshToken.builder()
-                .key(authentication.getName())
-                .value(tokenResponse.getRefreshToken())
-                .build();
-        refreshTokenRepository.save(refreshToken);
-        return UserLoginResponse.of(user, tokenResponse);
-    }
+
 
     @Transactional
     public TokenResponse reissue(TokenRequest tokenRequest) {

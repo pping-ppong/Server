@@ -36,13 +36,13 @@ public class UserService {
     private final SearchHistoryRepository searchHistoryRepository;
 
     @Transactional
-    public UserResponse signup(SignUpRequest signUpRequest) {
-        User user = signUpRequest.toEntity(passwordEncoder);
+    public UserResponse signup(SignUpRequest request) {
+        User user = request.toEntity(passwordEncoder);
         return UserResponse.of(userRepository.save(user));
     }
 
     @Transactional
-    public BaseResponse<String> validateNickname(String nickname) {
+    public BaseResponse<String> validateNickname(String nickname) throws BaseException {
         if (!isRegexNickname(nickname)) {
             throw new BaseException(INVALID_NICKNAME);
         }

@@ -34,17 +34,10 @@ public class UserController {
         return userService.validateNickname(nickname);
     }
 
-    /* 자신의 조회 - 마이페이지 */
-    @ResponseBody
-    @GetMapping("/{userIdx}/mypage")
-    public void findUserProfile(@RequestBody SignUpRequest signUpRequest) {
-        userService.findUserProfile(signUpRequest);
-    }
-
     /* 유저 검색 by 닉네임*/
     @GetMapping("/search")
-    public List<UserSearchResponse> search(@RequestParam("nickname") String nickname) {
-        return userService.search(nickname);
+    public BaseResponse<List<UserSearchResponse>> search(@RequestParam("nickname") String nickname) {
+        return new BaseResponse<>(userService.search(nickname));
     }
 
     /* 해당 유저의 검색 기록 조회 */
@@ -52,6 +45,13 @@ public class UserController {
     @GetMapping("/{userIdx}/search-history")
     public List<SearchHistoryResponse> findSearchHistory(@PathVariable("userIdx") Long userIdx) {
         return userService.findSearchHistory(userIdx);
+    }
+
+    /* 자신의 조회 - 마이페이지 */
+    @ResponseBody
+    @GetMapping("/{userIdx}/mypage")
+    public void findUserProfile(@RequestBody SignUpRequest signUpRequest) {
+        userService.findUserProfile(signUpRequest);
     }
 
 }
