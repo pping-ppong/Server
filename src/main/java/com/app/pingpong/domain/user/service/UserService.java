@@ -2,6 +2,7 @@ package com.app.pingpong.domain.user.service;
 
 import com.app.pingpong.domain.facade.UserFacade;
 import com.app.pingpong.domain.user.dto.request.SignUpRequest;
+import com.app.pingpong.domain.user.dto.request.UpdateRequestDto;
 import com.app.pingpong.domain.user.dto.response.SearchHistoryResponse;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
 import com.app.pingpong.domain.user.dto.response.UserSearchResponse;
@@ -11,14 +12,11 @@ import com.app.pingpong.domain.user.repository.SearchHistoryRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.app.pingpong.global.common.BaseResponse;
 import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.rowset.BaseRowSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,7 +40,17 @@ public class UserService {
     }
 
     @Transactional
-    public BaseResponse<String> validateNickname(String nickname) throws BaseException {
+    public UserResponse update(UpdateRequestDto request, Long userIdx) {
+        /* s3에 이미지 업로드 필요*/
+        User user = userRepository.findById(userIdx).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
+        validateNickname(request.getNickname());
+        user.setNickname(request.getNickname());
+        user.setProfileImage(request.getProfileImage());
+        return UserResponse.of(user);
+    }
+
+    @Transactional
+    public BaseResponse<String> validateNickname(String nickname){
         if (!isRegexNickname(nickname)) {
             throw new BaseException(INVALID_NICKNAME);
         }
@@ -82,7 +90,9 @@ public class UserService {
         return findSearchHistory;
     }
 
-    public void findUserProfile(SignUpRequest signUpRequest) {
+    public void findUserProfile(SignUpRequest request) {
         //return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode());
     }
+
+
 }

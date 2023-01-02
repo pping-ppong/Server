@@ -1,8 +1,8 @@
 package com.app.pingpong.domain.user.controller;
 
-import com.app.pingpong.domain.user.dto.request.TokenRequest;
-import com.app.pingpong.domain.user.dto.request.UserInfoRequest;
-import com.app.pingpong.domain.user.dto.request.UserOauthRequest;
+import com.app.pingpong.domain.user.dto.request.oauth.TokenRequest;
+import com.app.pingpong.domain.user.dto.request.oauth.UserInfoRequest;
+import com.app.pingpong.domain.user.dto.request.oauth.UserOauthRequest;
 import com.app.pingpong.domain.user.dto.response.TokenResponse;
 import com.app.pingpong.domain.user.dto.response.UserLoginResponse;
 import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;

@@ -1,17 +1,15 @@
 package com.app.pingpong.domain.user.service;
 
-import com.app.pingpong.domain.user.dto.request.TokenRequest;
-import com.app.pingpong.domain.user.dto.request.UserInfoRequest;
-import com.app.pingpong.domain.user.dto.request.UserOauthRequest;
+import com.app.pingpong.domain.user.dto.request.oauth.TokenRequest;
+import com.app.pingpong.domain.user.dto.request.oauth.UserInfoRequest;
+import com.app.pingpong.domain.user.dto.request.oauth.UserOauthRequest;
 import com.app.pingpong.domain.user.dto.response.TokenResponse;
 import com.app.pingpong.domain.user.dto.response.UserLoginResponse;
 import com.app.pingpong.domain.user.dto.response.UserOAuthResponse;
 import com.app.pingpong.domain.user.entity.RefreshToken;
-import com.app.pingpong.domain.user.entity.SocialLoginType;
 import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.RefreshTokenRepository;
 import com.app.pingpong.domain.user.repository.UserRepository;
-import com.app.pingpong.global.common.BaseResponse;
 import com.app.pingpong.global.config.JwtTokenProvider;
 import com.app.pingpong.global.exception.BaseException;
 import com.google.gson.JsonObject;

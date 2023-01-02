@@ -1,4 +1,4 @@
-package com.app.pingpong.domain.user.dto.request;
+package com.app.pingpong.domain.user.dto.request.oauth;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
