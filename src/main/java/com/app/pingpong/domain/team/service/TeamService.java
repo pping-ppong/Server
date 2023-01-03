@@ -2,6 +2,7 @@ package com.app.pingpong.domain.team.service;
 
 import com.app.pingpong.domain.facade.UserFacade;
 import com.app.pingpong.domain.team.dto.request.TeamRequest;
+import com.app.pingpong.domain.team.dto.response.TeamMemberResponse;
 import com.app.pingpong.domain.team.dto.response.TeamResponse;
 import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.entity.UserTeam;
@@ -14,6 +15,7 @@ import com.app.pingpong.global.exception.BaseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,9 +77,11 @@ public class TeamService {
         return TeamResponse.of(team);
     }
 
-    public List<UserSearchResponse> findTeamMembers(Long teamId) {
+    public List<TeamMemberResponse> findTeamMembers(Long teamId) {
         List<UserTeam> userTeams = userTeamRepository.findAllByTeamId(teamId);
+        Team team = teamRepository.findById(teamId).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+        Long hostId = team.getHost().getId();
         List<User> users = userTeams.stream().map(UserTeam::getUser).collect(Collectors.toList());
-        return UserSearchResponse.of(users);
+        return TeamMemberResponse.of(users, hostId);
     }
 }

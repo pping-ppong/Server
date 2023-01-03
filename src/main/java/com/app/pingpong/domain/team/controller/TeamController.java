@@ -1,6 +1,7 @@
 package com.app.pingpong.domain.team.controller;
 
 import com.app.pingpong.domain.team.dto.request.TeamRequest;
+import com.app.pingpong.domain.team.dto.response.TeamMemberResponse;
 import com.app.pingpong.domain.team.dto.response.TeamResponse;
 import com.app.pingpong.domain.team.service.TeamService;
 import com.app.pingpong.domain.user.dto.response.UserSearchResponse;
@@ -25,7 +26,7 @@ public class TeamController {
 
     @ResponseBody
     @GetMapping("/{teamIdx}")
-    public BaseResponse<List<UserSearchResponse>> findTeamMembers(@PathVariable("teamIdx") Long teamIdx) {
+    public BaseResponse<List<TeamMemberResponse>> findTeamMembers(@PathVariable("teamIdx") Long teamIdx) {
         return new BaseResponse<>(teamService.findTeamMembers(teamIdx));
     }
 
