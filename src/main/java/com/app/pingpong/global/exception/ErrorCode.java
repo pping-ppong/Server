@@ -29,6 +29,8 @@ public enum ErrorCode {
     /* 404 : NOT FOUND */
     EMAIL_NOT_FOUND(NOT_FOUND, "존재하지 않는 이메일입니다, 회원가입을 해주세요."),
     USER_NOT_FOUND(NOT_FOUND, "존재하지 않는 유저입니다."),
+    DELEGATOR_NOT_FOUND(NOT_FOUND, "존재하지 않는 유저이므로, 해당 유저에게 호스트를 위임할 수 없습니다."),
+    TEAM_NOT_FOUND(NOT_FOUND, "존재하지 않는 그룹입니다."),
 
     /* 409 */
     DUPLICATE_RESOURCE(CONFLICT, "데이터가 이미 존재합니다"),

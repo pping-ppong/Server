@@ -27,7 +27,7 @@ public class TeamService {
     private final UserTeamRepository userTeamRepository;
     private final UserFacade userFacade;
 
-    public TeamResponse createGroup(TeamRequest groupRequest) {
+    public TeamResponse create(TeamRequest groupRequest) {
         if (groupRequest.getMemberIdx().size() > 10 || groupRequest.getMemberIdx().size() < 1) {
             throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
         }
@@ -37,12 +37,15 @@ public class TeamService {
             throw new BaseException(EXCEED_HOST_TEAM_SIZE);
         }
 
-
-
         Team team = Team.builder()
                 .name(groupRequest.getGroupName())
                 .build();
         Team newTeam = teamRepository.save(team);
+
+        UserTeam hostUserTeam = new UserTeam();
+        hostUserTeam.setTeam(newTeam);
+        hostUserTeam.setUser(currentUser);
+        userTeamRepository.save(hostUserTeam);
 
         for (Long memberIdx : groupRequest.getMemberIdx()) {
             UserTeam userTeam = new UserTeam();
@@ -57,5 +60,17 @@ public class TeamService {
         }
         List<UserTeam> userTeams = userTeamRepository.findAllByTeamId(newTeam.getId());
         return TeamResponse.of(userTeams);
+    }
+
+    public TeamResponse updateHost(Long teamIdx, Long delegatorIdx) {
+        Team team = teamRepository.findById(teamIdx).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+        List<User> teamUsers = team.getMembers().stream().map(UserTeam::getUser).collect(Collectors.toList());
+        User delegator = userRepository.findById(delegatorIdx).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
+        if (!teamUsers.contains(delegator)) {
+            throw new BaseException(DELEGATOR_NOT_FOUND);
+        }
+        team.setHost(delegator);
+        teamRepository.save(team);
+        return TeamResponse.of(team);
     }
 }

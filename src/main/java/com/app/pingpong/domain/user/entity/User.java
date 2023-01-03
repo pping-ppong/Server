@@ -8,6 +8,7 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@Table(name="USERS")
 @Setter
 @Getter
 @NoArgsConstructor
@@ -30,7 +31,7 @@ public class User {
     @Enumerated
     private Authority authority;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<UserTeam> userTeams = new ArrayList<>();
 
     @Builder

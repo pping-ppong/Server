@@ -1,5 +1,6 @@
 package com.app.pingpong.domain.team.dto.response;
 
+import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.entity.UserTeam;
 import com.app.pingpong.domain.user.entity.User;
 import lombok.AllArgsConstructor;
@@ -16,6 +17,12 @@ public class TeamResponse {
     private Long groupIdx;
     private String groupName;
     private List<Long> groupMemberIdx;
+
+    public static TeamResponse of(Team team) {
+        List<User> users = team.getMembers().stream().map(UserTeam::getUser).collect(Collectors.toList());
+        List<Long> usersIdx = users.stream().map(User::getId).toList();
+        return new TeamResponse(team.getId(), team.getName(), usersIdx);
+    }
 
     public static TeamResponse of(List<UserTeam> team) {
         List<User> users = team.stream().map(UserTeam::getUser).collect(Collectors.toList());

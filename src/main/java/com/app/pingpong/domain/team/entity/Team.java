@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+@Table(name="TEAMS")
 @Getter
 @NoArgsConstructor
 @Entity
@@ -25,7 +26,7 @@ public class Team {
     @OneToOne
     private User host;
 
-    @OneToMany(mappedBy = "team")
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
     private List<UserTeam> members = new ArrayList<>();
 
     @Builder

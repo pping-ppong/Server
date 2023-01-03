@@ -3,6 +3,7 @@ package com.app.pingpong.domain.team.controller;
 import com.app.pingpong.domain.team.dto.request.TeamRequest;
 import com.app.pingpong.domain.team.dto.response.TeamResponse;
 import com.app.pingpong.domain.team.service.TeamService;
+import com.app.pingpong.global.common.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +16,13 @@ public class TeamController {
 
     @ResponseBody
     @PostMapping("")
-    public TeamResponse createGroup(@RequestBody TeamRequest groupRequest) {
-        return teamService.createGroup(groupRequest);
+    public BaseResponse<TeamResponse> create(@RequestBody TeamRequest groupRequest) {
+        return new BaseResponse<>(teamService.create(groupRequest));
+    }
+
+    @ResponseBody
+    @PatchMapping("/{teamIdx}/host")
+    public BaseResponse<TeamResponse> updateHost(@PathVariable("teamIdx") Long teamIdx, @RequestParam Long delegatorIdx) {
+        return new BaseResponse<>(teamService.updateHost(teamIdx, delegatorIdx));
     }
 }
