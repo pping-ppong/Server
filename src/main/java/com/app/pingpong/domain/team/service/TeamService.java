@@ -5,7 +5,7 @@ import com.app.pingpong.domain.team.dto.request.TeamRequest;
 import com.app.pingpong.domain.team.dto.response.TeamMemberResponse;
 import com.app.pingpong.domain.team.dto.response.TeamResponse;
 import com.app.pingpong.domain.team.entity.Team;
-import com.app.pingpong.domain.team.entity.TeamMember;
+import com.app.pingpong.domain.team.entity.UserTeam;
 import com.app.pingpong.domain.team.repository.TeamRepository;
 import com.app.pingpong.domain.team.repository.UserTeamRepository;
 import com.app.pingpong.domain.user.entity.User;
@@ -43,29 +43,29 @@ public class TeamService {
                 .build();
         Team newTeam = teamRepository.save(team);
 
-        TeamMember hostTeamMember = new TeamMember();
-        hostTeamMember.setTeam(newTeam);
-        hostTeamMember.setUser(currentUser);
-        userTeamRepository.save(hostTeamMember);
+        UserTeam hostUserTeam = new UserTeam();
+        hostUserTeam.setTeam(newTeam);
+        hostUserTeam.setUser(currentUser);
+        userTeamRepository.save(hostUserTeam);
 
         for (Long memberId : request.getMemberId()) {
-            TeamMember teamMember = new TeamMember();
-            teamMember.setTeam(newTeam);
-            teamMember.getTeam().setHost(currentUser);
+            UserTeam userTeam = new UserTeam();
+            userTeam.setTeam(newTeam);
+            userTeam.getTeam().setHost(currentUser);
             if (memberId == currentUser.getId()) {
                 throw  new BaseException(INVALID_GROUP_MEMBER);
             }
             User user = userRepository.findById(memberId).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
-            teamMember.setUser(user);
-            userTeamRepository.save(teamMember);
+            userTeam.setUser(user);
+            userTeamRepository.save(userTeam);
         }
-        List<TeamMember> teamMembers = userTeamRepository.findAllByTeamId(newTeam.getId());
-        return TeamResponse.of(teamMembers);
+        List<UserTeam> userTeams = userTeamRepository.findAllByTeamId(newTeam.getId());
+        return TeamResponse.of(userTeams);
     }
 
     public TeamResponse updateHost(Long teamId, Long delegatorId) {
         Team team = teamRepository.findById(teamId).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
-        List<User> teamUsers = team.getMembers().stream().map(TeamMember::getUser).collect(Collectors.toList());
+        List<User> teamUsers = team.getMembers().stream().map(UserTeam::getUser).collect(Collectors.toList());
         User delegator = userRepository.findById(delegatorId).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
         if (!teamUsers.contains(delegator)) {
             throw new BaseException(DELEGATOR_NOT_FOUND);
@@ -76,10 +76,26 @@ public class TeamService {
     }
 
     public List<TeamMemberResponse> findTeamMembers(Long teamId) {
-        List<TeamMember> teamMembers = userTeamRepository.findAllByTeamId(teamId);
+        List<UserTeam> userTeams = userTeamRepository.findAllByTeamId(teamId);
         Team team = teamRepository.findById(teamId).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
         Long hostId = team.getHost().getId();
-        List<User> users = teamMembers.stream().map(TeamMember::getUser).collect(Collectors.toList());
+        List<User> users = userTeams.stream().map(UserTeam::getUser).collect(Collectors.toList());
         return TeamMemberResponse.of(users, hostId);
     }
+
+    public List<TeamMemberResponse> emit(Long teamId, Long emitterId) {
+        Team team = teamRepository.findById(teamId).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+        List<User> teamUsers = team.getMembers().stream().map(UserTeam::getUser).collect(Collectors.toList());
+        User currentUser = userFacade.getCurrentUser();
+        User emitter = userRepository.findById(emitterId).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
+        if (!currentUser.equals(team.getHost())) {
+            throw new BaseException(INVALID_HOST);
+        }
+        teamUsers.remove(emitter);
+        System.out.println("==== 1. 방출됨 : " + teamUsers.size());
+        return TeamMemberResponse.of(teamUsers, currentUser.getId());
+    }
+
+
+
 }

@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @NoArgsConstructor
-public class TeamMember {
+public class UserTeam {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +25,7 @@ public class TeamMember {
     @JoinColumn(name = "team_id")
     private Team team;
 
-    public TeamMember(User user, Team team) {
+    public UserTeam(User user, Team team) {
         this.user = user;
         this.team = team;
     }

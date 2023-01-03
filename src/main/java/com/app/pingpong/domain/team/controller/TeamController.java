@@ -35,4 +35,11 @@ public class TeamController {
     public BaseResponse<TeamResponse> updateHost(@PathVariable("teamId") Long teamId, @RequestParam Long delegatorId) {
         return new BaseResponse<>(teamService.updateHost(teamId, delegatorId));
     }
+
+    @ResponseBody
+    @PatchMapping("/{teamId}/emit")
+    public BaseResponse<List<TeamMemberResponse>> emit(@PathVariable("teamId") Long teamId, @RequestParam Long emitterId) {
+        return new BaseResponse<>(teamService.emit(teamId, emitterId));
+    }
+
 }

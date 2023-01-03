@@ -25,7 +25,7 @@ public class Team {
     private User host;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
-    private List<TeamMember> members = new ArrayList<>();
+    private List<UserTeam> members = new ArrayList<>();
 
     @Builder
     public Team(String name) {

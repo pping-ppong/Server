@@ -17,6 +17,7 @@ public enum ErrorCode {
     /* 400 : Bad Request   */
     USER_EMAIL_ALREADY_EXISTS(BAD_REQUEST, "이미 사용 중인 이메일입니다."),
     USER_NICKNAME_ALREADY_EXISTS(BAD_REQUEST, "이미 사용 중인 닉네임입니다."),
+
     SEARCH_USER_NICKNAME_NOT_EXISTS(BAD_REQUEST, "해당 닉네임의 사용자가 존재하지않습니다."),
 
     EXCEED_HOST_TEAM_SIZE(BAD_REQUEST, "그룹을 더이상 생성할 수 없습니다. 그룹 개수는 최대 6개로 제한됩니다."),
@@ -25,6 +26,7 @@ public enum ErrorCode {
     INVALID_GROUP_MEMBER(BAD_REQUEST, "그룹 호스트(자기 자신)은/는 초대할 수 없습니다."),
     INVALID_SOCIAL_TYPE(BAD_REQUEST, "소셜로그인 타입의 형식을 확인해주세요."),
     INVALID_TEAM_MEMBER_SIZE(BAD_REQUEST, "그룹 멤버는 최소 1명, 최대 10명으로 제한됩니다."),
+    INVALID_HOST(BAD_REQUEST, "해당 그룹의 호스트가 아니므로 방출 권한이 없습니다."),
 
     /* 404 : NOT FOUND */
     EMAIL_NOT_FOUND(NOT_FOUND, "존재하지 않는 이메일입니다, 회원가입을 해주세요."),
