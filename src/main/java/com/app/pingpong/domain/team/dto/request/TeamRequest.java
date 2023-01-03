@@ -10,6 +10,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TeamRequest {
-    private String groupName;
+    private String teamName;
     private List<Long> memberId;
 }

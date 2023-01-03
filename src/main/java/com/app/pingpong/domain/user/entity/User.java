@@ -1,7 +1,7 @@
 package com.app.pingpong.domain.user.entity;
 
 import com.app.pingpong.domain.team.entity.Team;
-import com.app.pingpong.domain.team.entity.UserTeam;
+import com.app.pingpong.domain.team.entity.TeamMember;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,7 +32,7 @@ public class User {
     private Authority authority;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<UserTeam> userTeams = new ArrayList<>();
+    private List<TeamMember> teamMembers = new ArrayList<>();
 
     @Builder
     public User(String socialIdx, String email, String nickname, String profileImage, Authority authority) {
@@ -44,8 +44,8 @@ public class User {
     }
 
     public void setTeam(Team team) {
-        UserTeam userTeam = new UserTeam(this, team);
-        this.userTeams.add(userTeam);
-        team.getMembers().add(userTeam);
+        TeamMember teamMember = new TeamMember(this, team);
+        this.teamMembers.add(teamMember);
+        team.getMembers().add(teamMember);
     }
 }

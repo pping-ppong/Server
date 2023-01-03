@@ -20,19 +20,19 @@ public class TeamController {
 
     @ResponseBody
     @PostMapping("")
-    public BaseResponse<TeamResponse> create(@RequestBody TeamRequest groupRequest) {
-        return new BaseResponse<>(teamService.create(groupRequest));
+    public BaseResponse<TeamResponse> create(@RequestBody TeamRequest request) {
+        return new BaseResponse<>(teamService.create(request));
     }
 
     @ResponseBody
-    @GetMapping("/{teamIdx}")
-    public BaseResponse<List<TeamMemberResponse>> findTeamMembers(@PathVariable("teamIdx") Long teamIdx) {
-        return new BaseResponse<>(teamService.findTeamMembers(teamIdx));
+    @GetMapping("/{teamId}")
+    public BaseResponse<List<TeamMemberResponse>> findTeamMembers(@PathVariable("teamId") Long teamId) {
+        return new BaseResponse<>(teamService.findTeamMembers(teamId));
     }
 
     @ResponseBody
-    @PatchMapping("/{teamIdx}/host")
-    public BaseResponse<TeamResponse> updateHost(@PathVariable("teamIdx") Long teamIdx, @RequestParam Long delegatorIdx) {
-        return new BaseResponse<>(teamService.updateHost(teamIdx, delegatorIdx));
+    @PatchMapping("/{teamId}/host")
+    public BaseResponse<TeamResponse> updateHost(@PathVariable("teamId") Long teamId, @RequestParam Long delegatorId) {
+        return new BaseResponse<>(teamService.updateHost(teamId, delegatorId));
     }
 }

@@ -8,8 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 @Table(name="TEAMS")
 @Getter
@@ -27,7 +25,7 @@ public class Team {
     private User host;
 
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
-    private List<UserTeam> members = new ArrayList<>();
+    private List<TeamMember> members = new ArrayList<>();
 
     @Builder
     public Team(String name) {
