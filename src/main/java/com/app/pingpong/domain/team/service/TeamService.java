@@ -7,6 +7,7 @@ import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.entity.UserTeam;
 import com.app.pingpong.domain.team.repository.TeamRepository;
 import com.app.pingpong.domain.team.repository.UserTeamRepository;
+import com.app.pingpong.domain.user.dto.response.UserSearchResponse;
 import com.app.pingpong.domain.user.entity.User;
 import com.app.pingpong.domain.user.repository.UserRepository;
 import com.app.pingpong.global.exception.BaseException;
@@ -28,7 +29,7 @@ public class TeamService {
     private final UserFacade userFacade;
 
     public TeamResponse create(TeamRequest groupRequest) {
-        if (groupRequest.getMemberIdx().size() > 10 || groupRequest.getMemberIdx().size() < 1) {
+        if (groupRequest.getMemberId().size() > 10 || groupRequest.getMemberId().size() < 1) {
             throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
         }
 
@@ -47,14 +48,14 @@ public class TeamService {
         hostUserTeam.setUser(currentUser);
         userTeamRepository.save(hostUserTeam);
 
-        for (Long memberIdx : groupRequest.getMemberIdx()) {
+        for (Long memberId : groupRequest.getMemberId()) {
             UserTeam userTeam = new UserTeam();
             userTeam.setTeam(newTeam);
             userTeam.getTeam().setHost(currentUser);
-            if (memberIdx == currentUser.getId()) {
+            if (memberId == currentUser.getId()) {
                 throw  new BaseException(INVALID_GROUP_MEMBER);
             }
-            User user = userRepository.findById(memberIdx).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
+            User user = userRepository.findById(memberId).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
             userTeam.setUser(user);
             userTeamRepository.save(userTeam);
         }
@@ -62,15 +63,21 @@ public class TeamService {
         return TeamResponse.of(userTeams);
     }
 
-    public TeamResponse updateHost(Long teamIdx, Long delegatorIdx) {
+    public TeamResponse updateHost(Long teamIdx, Long delegatorId) {
         Team team = teamRepository.findById(teamIdx).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
         List<User> teamUsers = team.getMembers().stream().map(UserTeam::getUser).collect(Collectors.toList());
-        User delegator = userRepository.findById(delegatorIdx).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
+        User delegator = userRepository.findById(delegatorId).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
         if (!teamUsers.contains(delegator)) {
             throw new BaseException(DELEGATOR_NOT_FOUND);
         }
         team.setHost(delegator);
         teamRepository.save(team);
         return TeamResponse.of(team);
+    }
+
+    public List<UserSearchResponse> findTeamMembers(Long teamId) {
+        List<UserTeam> userTeams = userTeamRepository.findAllByTeamId(teamId);
+        List<User> users = userTeams.stream().map(UserTeam::getUser).collect(Collectors.toList());
+        return UserSearchResponse.of(users);
     }
 }

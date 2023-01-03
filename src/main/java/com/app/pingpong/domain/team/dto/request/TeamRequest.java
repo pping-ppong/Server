@@ -11,14 +11,5 @@ import java.util.List;
 @NoArgsConstructor
 public class TeamRequest {
     private String groupName;
-    private List<Long> memberIdx;
-
-    /*
-    public Group toEntity(User u) {
-        return Group.builder()
-                .name(groupName)
-                //.host()
-                //.user()
-                .build();
-    } */
+    private List<Long> memberId;
 }

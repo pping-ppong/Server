@@ -3,9 +3,12 @@ package com.app.pingpong.domain.team.controller;
 import com.app.pingpong.domain.team.dto.request.TeamRequest;
 import com.app.pingpong.domain.team.dto.response.TeamResponse;
 import com.app.pingpong.domain.team.service.TeamService;
+import com.app.pingpong.domain.user.dto.response.UserSearchResponse;
 import com.app.pingpong.global.common.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,6 +21,12 @@ public class TeamController {
     @PostMapping("")
     public BaseResponse<TeamResponse> create(@RequestBody TeamRequest groupRequest) {
         return new BaseResponse<>(teamService.create(groupRequest));
+    }
+
+    @ResponseBody
+    @GetMapping("/{teamIdx}")
+    public BaseResponse<List<UserSearchResponse>> findTeamMembers(@PathVariable("teamIdx") Long teamIdx) {
+        return new BaseResponse<>(teamService.findTeamMembers(teamIdx));
     }
 
     @ResponseBody
