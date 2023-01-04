@@ -29,38 +29,38 @@ public class TeamService {
     private final UserFacade userFacade;
 
     public TeamCompactResponse create(TeamRequest request) {
+        User currentUser = userFacade.getCurrentUser();
         if (request.getMemberId().size() > 10 || request.getMemberId().size() < 1) {
             throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
         }
-
-        User currentUser = userFacade.getCurrentUser();
         if (teamRepository.findByHostId(currentUser.getId()).size() > 6) {
             throw new BaseException(EXCEED_HOST_TEAM_SIZE);
         }
+        Team newTeam = teamRepository.save(request.toEntity());
+        newTeam.setHost(currentUser);
+        setTeamToHost(newTeam, currentUser);
+        setTeamToUsers(request, newTeam, currentUser);
+        return TeamCompactResponse.of(userTeamRepository.findAllByTeamId(newTeam.getId()));
+    }
 
-        Team team = Team.builder()
-                .name(request.getTeamName())
-                .build();
-        Team newTeam = teamRepository.save(team);
-
+    private void setTeamToHost(Team team, User currentUser) {
         UserTeam hostUserTeam = new UserTeam();
-        hostUserTeam.setTeam(newTeam);
+        hostUserTeam.setTeam(team);
         hostUserTeam.setUser(currentUser);
         userTeamRepository.save(hostUserTeam);
+    }
 
+    private void setTeamToUsers(TeamRequest request, Team newTeam, User currentUser) {
         for (Long memberId : request.getMemberId()) {
             UserTeam userTeam = new UserTeam();
             userTeam.setTeam(newTeam);
-            userTeam.getTeam().setHost(currentUser);
             if (memberId == currentUser.getId()) {
-                throw  new BaseException(INVALID_GROUP_MEMBER);
+                throw new BaseException(INVALID_GROUP_MEMBER);
             }
             User user = userRepository.findById(memberId).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
             userTeam.setUser(user);
             userTeamRepository.save(userTeam);
         }
-        List<UserTeam> userTeams = userTeamRepository.findAllByTeamId(newTeam.getId());
-        return TeamCompactResponse.of(userTeams);
     }
 
     public TeamCompactResponse updateHost(Long teamId, Long delegatorId) {
