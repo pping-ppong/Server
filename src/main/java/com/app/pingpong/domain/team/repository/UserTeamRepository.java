@@ -10,5 +10,4 @@ import java.util.List;
 public interface UserTeamRepository extends JpaRepository<UserTeam, Long> {
     List<UserTeam> findAllByTeamId(Long teamId);
     List<UserTeam> findAllByUserId(Long userId);
-    UserTeam findByTeamIdAndUserId(Long teamId, Long userId);
 }

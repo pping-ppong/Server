@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Long> {
-    List<SearchHistory> findTop10ByUserIdOrderByIdDesc(Long userIdx);
+    List<SearchHistory> findTop10ByUserIdOrderByIdDesc(Long userId);
 }

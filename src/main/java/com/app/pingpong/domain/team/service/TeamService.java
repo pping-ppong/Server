@@ -3,7 +3,7 @@ package com.app.pingpong.domain.team.service;
 import com.app.pingpong.domain.facade.UserFacade;
 import com.app.pingpong.domain.team.dto.request.TeamRequest;
 import com.app.pingpong.domain.team.dto.response.TeamMemberResponse;
-import com.app.pingpong.domain.team.dto.response.TeamResponse;
+import com.app.pingpong.domain.team.dto.response.TeamCompactResponse;
 import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.entity.UserTeam;
 import com.app.pingpong.domain.team.repository.TeamRepository;
@@ -28,7 +28,7 @@ public class TeamService {
     private final UserTeamRepository userTeamRepository;
     private final UserFacade userFacade;
 
-    public TeamResponse create(TeamRequest request) {
+    public TeamCompactResponse create(TeamRequest request) {
         if (request.getMemberId().size() > 10 || request.getMemberId().size() < 1) {
             throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
         }
@@ -60,10 +60,10 @@ public class TeamService {
             userTeamRepository.save(userTeam);
         }
         List<UserTeam> userTeams = userTeamRepository.findAllByTeamId(newTeam.getId());
-        return TeamResponse.of(userTeams);
+        return TeamCompactResponse.of(userTeams);
     }
 
-    public TeamResponse updateHost(Long teamId, Long delegatorId) {
+    public TeamCompactResponse updateHost(Long teamId, Long delegatorId) {
         Team team = teamRepository.findById(teamId).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
         List<User> teamUsers = team.getMembers().stream().map(UserTeam::getUser).collect(Collectors.toList());
         User delegator = userRepository.findById(delegatorId).orElseThrow(() -> new BaseException(USER_NOT_FOUND));
@@ -72,7 +72,7 @@ public class TeamService {
         }
         team.setHost(delegator);
         teamRepository.save(team);
-        return TeamResponse.of(team);
+        return TeamCompactResponse.of(team);
     }
 
     public List<TeamMemberResponse> findTeamMembers(Long teamId) {
@@ -92,7 +92,6 @@ public class TeamService {
             throw new BaseException(INVALID_HOST);
         }
         teamUsers.remove(emitter);
-        System.out.println("==== 1. 방출됨 : " + teamUsers.size());
         return TeamMemberResponse.of(teamUsers, currentUser.getId());
     }
 

@@ -1,5 +1,7 @@
 package com.app.pingpong.domain.user.controller;
 
+import com.app.pingpong.domain.team.dto.response.TeamDetailResponse;
+import com.app.pingpong.domain.team.dto.response.TeamMemberResponse;
 import com.app.pingpong.domain.user.dto.request.SignUpRequest;
 import com.app.pingpong.domain.user.dto.request.UpdateRequestDto;
 import com.app.pingpong.domain.user.dto.response.SearchHistoryResponse;
@@ -32,9 +34,14 @@ public class UserController {
         return userService.validateNickname(nickname);
     }
 
-    @PatchMapping("/{userIdx}")
-    public BaseResponse<UserResponse> update(@RequestBody UpdateRequestDto request, @PathVariable("userIdx") Long userIdx) {
-        return new BaseResponse<>(userService.update(request, userIdx));
+    @PatchMapping("/{userId}")
+    public BaseResponse<UserResponse> update(@RequestBody UpdateRequestDto request, @PathVariable("userId") Long id) {
+        return new BaseResponse<>(userService.update(request, id));
+    }
+
+    @GetMapping("/{userId}/teams")
+    public BaseResponse<List<TeamDetailResponse>> findTeamByUserId(@PathVariable("userId") Long id) {
+        return new BaseResponse<>(userService.findTeamByUserId(id));
     }
 
     @GetMapping("/search")
@@ -43,15 +50,8 @@ public class UserController {
     }
 
     @ResponseBody
-    @GetMapping("/{userIdx}/search-history")
-    public List<SearchHistoryResponse> findSearchHistory(@PathVariable("userIdx") Long userIdx) {
-        return userService.findSearchHistory(userIdx);
+    @GetMapping("/{userId}/search-history")
+    public List<SearchHistoryResponse> findSearchHistory(@PathVariable("userId") Long id) {
+        return userService.findSearchHistory(id);
     }
-
-    @ResponseBody
-    @GetMapping("/{userIdx}/mypage")
-    public void getProfile(@RequestBody SignUpRequest request) {
-        userService.findUserProfile(request);
-    }
-
 }

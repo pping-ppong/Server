@@ -1,9 +1,16 @@
 package com.app.pingpong.domain.user.service;
 
 import com.app.pingpong.domain.facade.UserFacade;
+import com.app.pingpong.domain.team.dto.response.TeamDetailResponse;
+import com.app.pingpong.domain.team.dto.response.TeamMemberResponse;
+import com.app.pingpong.domain.team.entity.Team;
+import com.app.pingpong.domain.team.entity.UserTeam;
+import com.app.pingpong.domain.team.repository.TeamRepository;
+import com.app.pingpong.domain.team.repository.UserTeamRepository;
 import com.app.pingpong.domain.user.dto.request.SignUpRequest;
 import com.app.pingpong.domain.user.dto.request.UpdateRequestDto;
 import com.app.pingpong.domain.user.dto.response.SearchHistoryResponse;
+import com.app.pingpong.domain.user.dto.response.UserDetailResponse;
 import com.app.pingpong.domain.user.dto.response.UserResponse;
 import com.app.pingpong.domain.user.dto.response.UserSearchResponse;
 import com.app.pingpong.domain.user.entity.SearchHistory;
@@ -29,9 +36,11 @@ import static com.app.pingpong.global.utils.ValidationRegex.isRegexNickname;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
+    private final UserTeamRepository userTeamRepository;
+    private final SearchHistoryRepository searchHistoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserFacade userFacade;
-    private final SearchHistoryRepository searchHistoryRepository;
 
     @Transactional
     public UserResponse signup(SignUpRequest request) {
@@ -53,36 +62,25 @@ public class UserService {
     public BaseResponse<String> validateNickname(String nickname){
         if (!isRegexNickname(nickname)) {
             throw new BaseException(INVALID_NICKNAME);
-        }
-        if (userRepository.existsUserByNickname(nickname)) {
+        } else if (userRepository.existsUserByNickname(nickname)) {
             throw new BaseException(USER_NICKNAME_ALREADY_EXISTS);
         }
         return new BaseResponse(SUCCESS_VALIDATE_NICKNAME);
     }
 
     public List<UserSearchResponse> search(String nickname) {
-        List<User> findUser = userRepository.findByNicknameContains(nickname)
-                .orElseThrow(() -> new BaseException(SEARCH_USER_NICKNAME_NOT_EXISTS));
-
-        List<UserSearchResponse> response = findUser.stream().map(user -> UserSearchResponse.builder()
-                .userIdx(user.getId())
-                .nickname(user.getNickname())
-                .profileImage(user.getProfileImage())
-                .build()
-        ).collect(Collectors.toList());
-
-        // 닉네임 내역 저장
-        User currentUser = userFacade.getCurrentUser();
-        SearchHistory history = SearchHistory.builder()
-                .content(nickname)
-                .user(currentUser)
-                .build();
-        searchHistoryRepository.save(history);
+        List<User> findUsers = userRepository.findByNicknameContains(nickname).orElseThrow(() -> new BaseException(SEARCH_USER_NICKNAME_NOT_EXISTS));
+        List<UserSearchResponse> response = UserSearchResponse.of(findUsers);
+        searchHistoryRepository.save(SearchHistory.builder()
+                    .content(nickname)
+                    .user(userFacade.getCurrentUser())
+                    .build()
+        );
         return response;
     }
 
-    public List<SearchHistoryResponse> findSearchHistory(Long userIdx) {
-        List<SearchHistory> history = searchHistoryRepository.findTop10ByUserIdOrderByIdDesc(userIdx);
+    public List<SearchHistoryResponse> findSearchHistory(Long userId) {
+        List<SearchHistory> history = searchHistoryRepository.findTop10ByUserIdOrderByIdDesc(userId);
         List<SearchHistoryResponse> findSearchHistory = new ArrayList<>();
         for (SearchHistory h : history) {
                 findSearchHistory.add(new SearchHistoryResponse(h.getId(), h.getContent()));
@@ -90,9 +88,16 @@ public class UserService {
         return findSearchHistory;
     }
 
-    public void findUserProfile(SignUpRequest request) {
-        //return new BaseResponse<>(true, BaseResultCode.SUCCESS.getMessage(), BaseResultCode.SUCCESS.getCode());
+    public List<TeamDetailResponse> findTeamByUserId(Long userId) {
+        List<UserTeam> userTeams = userTeamRepository.findAllByUserId(userId);
+        List<Team> teams = userTeams.stream().map(UserTeam::getTeam).collect(Collectors.toList());
+        List<Long> teamId = teams.stream().map(Team::getId).collect(Collectors.toList());
+
+        for (Long id : teamId) {
+            Team team = teamRepository.findById(id).orElseThrow();
+            team.getMembers().stream().map(UserTeam::getUser).collect(Collectors.toList());
+        }
+
+        return TeamDetailResponse.of(userTeams);
     }
-
-
 }
