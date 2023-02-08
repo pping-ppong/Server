@@ -82,4 +82,5 @@ public class TeamController {
     public BaseResponse<TeamPlanResponse> passPlan(@PathVariable("teamId") Long teamId, @RequestBody TeamPlanPassRequest request) {
         return new BaseResponse<>(teamService.passPlan(teamId, request));
     }
+    //
 }
