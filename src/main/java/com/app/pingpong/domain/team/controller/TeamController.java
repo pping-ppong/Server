@@ -1,6 +1,5 @@
 package com.app.pingpong.domain.team.controller;
 
-import com.app.pingpong.domain.member.dto.response.MemberSearchResponse;
 import com.app.pingpong.domain.team.dto.request.TeamAchieveRequest;
 import com.app.pingpong.domain.team.dto.request.TeamPlanPassRequest;
 import com.app.pingpong.domain.team.dto.request.TeamPlanRequest;
@@ -36,9 +35,9 @@ public class TeamController {
     }
 
     @ResponseBody
-    @GetMapping("/{id}/members")
-    public BaseResponse<List<TeamMemberResponse>> getTeamMembers(@PathVariable Long id) {
-        return new BaseResponse<>(teamService.getTeamMembers(id));
+    @PatchMapping("/{id}")
+    public void update() {
+
     }
 
     @ResponseBody
@@ -54,20 +53,26 @@ public class TeamController {
     }
 
     @ResponseBody
+    @GetMapping("/{id}/members")
+    public BaseResponse<List<TeamMemberResponse>> getTeamMembers(@PathVariable("id") Long id) {
+        return new BaseResponse<>(teamService.getTeamMembers(id));
+    }
+
+    @ResponseBody
     @PostMapping("/{id}/accept")
     public BaseResponse<StatusCode> accept(@PathVariable("id") Long teamId) {
         return new BaseResponse<>(teamService.accept(teamId));
     }
 
     @ResponseBody
-    @PostMapping("/refuse")
+    @PostMapping("/{id}/refuse")
     public BaseResponse<StatusCode> refuse(@PathVariable("id") Long teamId) {
         return new BaseResponse<>(teamService.refuse(teamId));
     }
 
     @ResponseBody
     @PostMapping("/{id}/plans")
-    public BaseResponse<TeamPlanResponse> createPlan(@PathVariable Long id, @RequestBody TeamPlanRequest request) {
+    public BaseResponse<TeamPlanResponse> createPlan(@PathVariable("id") Long id, @RequestBody TeamPlanRequest request) {
         return new BaseResponse<>(teamService.createPlan(id, request));
     }
 
