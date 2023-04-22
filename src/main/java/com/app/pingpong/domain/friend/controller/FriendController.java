@@ -2,8 +2,11 @@ package com.app.pingpong.domain.friend.controller;
 
 import com.app.pingpong.domain.friend.dto.request.FriendRequest;
 import com.app.pingpong.domain.friend.dto.response.FriendResponse;
-import com.app.pingpong.domain.friend.entity.Friend;
 import com.app.pingpong.domain.friend.service.FriendService;
+import com.app.pingpong.domain.member.dto.response.MemberResponse;
+import com.app.pingpong.global.aop.CheckLoginStatus;
+import com.app.pingpong.global.aop.CurrentLoginMemberId;
+import com.app.pingpong.global.common.Authority;
 import com.app.pingpong.global.common.BaseResponse;
 import com.app.pingpong.global.exception.StatusCode;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +23,8 @@ public class FriendController {
 
     @ResponseBody
     @PostMapping("/apply")
-    public BaseResponse<FriendResponse> add(@RequestBody FriendRequest request) {
-        return new BaseResponse<>(friendService.add(request));
+    public BaseResponse<FriendResponse> apply(@RequestBody FriendRequest request) {
+        return new BaseResponse<>(friendService.apply(request));
     }
 
     @ResponseBody
@@ -38,8 +41,8 @@ public class FriendController {
 
     @ResponseBody
     @GetMapping("")
-    public BaseResponse<List<Friend>> getMyFriends() {
-        return new BaseResponse<>(friendService.getMyFriends());
+    @CheckLoginStatus(auth = Authority.ROLE_USER)
+    public BaseResponse<List<MemberResponse>> getMyFriends(@CurrentLoginMemberId Long id) {
+        return new BaseResponse<>(friendService.getMyFriends(id));
     }
-
 }

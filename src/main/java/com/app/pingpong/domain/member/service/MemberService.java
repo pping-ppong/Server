@@ -107,35 +107,15 @@ public class MemberService {
         return MemberDetailResponse.of(member, friendCount);
     }
 
-    @Transactional
-    public StatusCode saveSearchLog(SearchLogRequest request) {
-        if (request.getId() == memberFacade.getCurrentMember().getId()) {
-            throw new BaseException(INVALID_SAVE_SEARCH_LOG);
-        }
-
-        /* save search log into Redis */
-        Member member = findMemberByIdAndStatus(request.getId(), ACTIVE);
-        ListOperations<String, Object> listOps = redisTemplate.opsForList();
-        String loginUserId = "id" + memberFacade.getCurrentMember().getId();
-        String memberId = "id" + member.getId();
-        listOps.leftPush(loginUserId, memberId);
-
-        return SUCCESS_SAVE_SEARCH_LOG;
-    }
-
-    /* 다시 체크 @@@@@@@@ */
-    /* When the member is clicked, the member information is recorded in Redis.*/
-    @Transactional(readOnly = true)
-    public List<MemberResponse> getSearchLog() {
-        String loginMemberId = "id" + memberFacade.getCurrentMember().getId();
-        List<String> numList = extractNumberAndAddToList(loginMemberId);
-        List<MemberResponse> responses = addMemberToListByExtractedNum(numList);
-        return responses;
-    }
-
     @Transactional(readOnly = true)
     public List<MemberSearchResponse> findByNickname(String nickname) {
         List<Member> findMembers = memberRepository.findByStatusAndNicknameContains(ACTIVE, nickname).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+
+        /* save log into Redis */
+        ListOperations<String, Object> listOps = redisTemplate.opsForList();
+        String loginUserId = "id" + memberFacade.getCurrentMember().getId();
+        String keyword = nickname;
+        listOps.leftPush(loginUserId, keyword);
 
         List<MemberSearchResponse> friendshipList= new ArrayList<>();
         for (Member findMember : findMembers) {
@@ -145,11 +125,35 @@ public class MemberService {
         return friendshipList;
     }
 
+    @Transactional
+    public StatusCode saveSearchLog(SearchLogRequest request, Long loginMemberId) {
+        if (request.getId() == loginMemberId) {
+            throw new BaseException(INVALID_SAVE_SEARCH_LOG);
+        }
+
+        /* save search log into Redis */
+        Member member = findMemberByIdAndStatus(request.getId(), ACTIVE);
+        ListOperations<String, Object> listOps = redisTemplate.opsForList();
+        String currentMemberId = "id" + loginMemberId;
+        String memberId = "id" + member.getId();
+        listOps.leftPush(currentMemberId, memberId);
+
+        return SUCCESS_SAVE_SEARCH_LOG;
+    }
+
+    /* When the member is clicked, the member information is recorded in Redis.*/
+    @Transactional(readOnly = true)
+    public List<Object> getSearchLog(Long id) {
+        String loginMemberId = "id" + id;
+        List<String> numList = extractNumberAndAddToList(loginMemberId);
+        List<Object> responses = addMemberToListByExtractedNum(numList);
+        return responses;
+    }
+
     /* Retrieves all the teams that a current member belongs to, and then retrieves all the members belonging to each team. */
     @Transactional(readOnly = true)
-    public List<MemberTeamResponse> getMemberTeams() {
-        Long currentMember = memberFacade.getCurrentMember().getId();
-        List<MemberTeam> memberTeams = memberTeamRepository.findAllByMemberIdAndStatusOrderByParticipatedAtDesc(currentMember, ACTIVE);
+    public List<MemberTeamResponse> getMemberTeams(Long loginMemberId) {
+        List<MemberTeam> memberTeams = memberTeamRepository.findAllByMemberIdAndStatusOrderByParticipatedAtDesc(loginMemberId, ACTIVE);
 
         List<MemberTeamResponse> teamList = new ArrayList<>();
         for (MemberTeam mt : memberTeams) {
@@ -162,12 +166,11 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public List<MemberAchieveResponse> getMemberAchievementRate(MemberAchieveRequest request) {
-        Long currentMember = memberFacade.getCurrentMember().getId();
-        List<Plan> plans = planRepository.findAllByManagerIdAndStatusAndDateBetween(currentMember, ACTIVE, request.getStartDate(), request.getEndDate());
+    public List<MemberAchieveResponse> getMemberAchievementRate(MemberAchieveRequest request, Long loginMemberId) {
+        List<Plan> plans = planRepository.findAllByManagerIdAndStatusAndDateBetweenOrderByDateAsc(loginMemberId, ACTIVE, request.getStartDate(), request.getEndDate());
 
         return plans.stream().map(Plan::getDate).distinct().map(date -> {
-            List<Plan> plansOnDate = planRepository.findAllByManagerIdAndStatusAndDate(currentMember, ACTIVE, date);
+            List<Plan> plansOnDate = planRepository.findAllByManagerIdAndStatusAndDateOrderByDateAsc(loginMemberId, ACTIVE, date);
             long complete = plansOnDate.stream().filter(plan -> plan.getAchievement() == COMPLETE).count();
             long incomplete = plansOnDate.size() - complete;
             double achievement = (complete + incomplete > 0) ? ((double)complete / (double)(complete + incomplete) * 100.0) : 0.0;
@@ -176,15 +179,13 @@ public class MemberService {
     }
 
     @Transactional
-    public List<MemberPlanDetailResponse> getMemberCalendarByDate(LocalDate date) {
-        Long currentMemberId = memberFacade.getCurrentMember().getId();
-
-        List<MemberTeam> memberTeams = memberTeamRepository.findAllByMemberIdAndStatusOrderByParticipatedAtDesc(currentMemberId, ACTIVE);
+    public List<MemberPlanDetailResponse> getMemberCalendarByDate(LocalDate date, Long loginMemberId) {
+        List<MemberTeam> memberTeams = memberTeamRepository.findAllByMemberIdAndStatusOrderByParticipatedAtDesc(loginMemberId, ACTIVE);
         List<Team> teams = memberTeams.stream().map(MemberTeam::getTeam).collect(Collectors.toList());
 
         List<MemberPlanDetailResponse> response = new ArrayList<>();
         for (Team team : teams) {
-            List<Plan> plans = planRepository.findAllByTeamIdAndManagerIdAndStatusAndDate(team.getId(), currentMemberId, ACTIVE, date);
+            List<Plan> plans = planRepository.findAllByTeamIdAndManagerIdAndStatusAndDate(team.getId(), loginMemberId, ACTIVE, date);
             List<TeamPlanResponse> planList = plans.stream().map(this::createTeamPlanResponse).collect(Collectors.toList());
             response.add(MemberPlanDetailResponse.of(team, planList));
         }
@@ -207,28 +208,48 @@ public class MemberService {
         return memberRepository.findByIdAndStatus(id, status).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
     }
 
-    /* String 타입인 Redis의 key값 (ex."id1")에서 숫자(ex. 1)만 추출한다. */
     private List<String> extractNumberAndAddToList(String loginMemberId) {
         ListOperations<String, Object> listOps = redisTemplate.opsForList();
 
         List<String> list = new ArrayList<>();
         for (Object o : listOps.range(loginMemberId, 0, -1)) {
-            String memberId = o.toString().substring(2,3);
-            if (!list.contains(memberId) && list.size() <= 10) {
-                list.add(memberId);
+            String str = o.toString().substring(0, 2);
+            System.out.println("==== str : " + str);
+            if (!str.equals("id")) {
+                list.add(str);
+            }
+            else {
+                String memberId = o.toString().substring(2,3);
+                if (!list.contains(memberId) && list.size() <= 10) {
+                    list.add(memberId);
+                }
             }
         }
         return list;
     }
 
     /* 추출한 숫자값으로 Member 정보를 가져온다. */
-    private List<MemberResponse> addMemberToListByExtractedNum(List<String> numList) {
-        List<MemberResponse> memberList = new ArrayList<>();
+    private List<Object> addMemberToListByExtractedNum(List<String> numList) {
+        List<Object> memberList = new ArrayList<>();
         for (String num : numList) {
-            Long memberId = Long.parseLong(num);
-            Member member = findMemberByIdAndStatus(memberId, ACTIVE);
-            memberList.add(MemberResponse.of(member));
+            if (isLong(num)) {
+                Long memberId = Long.parseLong(num);
+                Member member = findMemberByIdAndStatus(memberId, ACTIVE);
+                memberList.add(MemberResponse.of(member));
+            }
+            else {
+                memberList.add(MemberKeywordResponse.of(num));
+            }
         }
         return memberList;
+    }
+
+    private boolean isLong(String strValue) {
+        try {
+            Long.parseLong(strValue);
+            return true;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
     }
 }
