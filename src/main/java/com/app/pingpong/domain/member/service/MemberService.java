@@ -1,8 +1,6 @@
 package com.app.pingpong.domain.member.service;
 
-import com.app.pingpong.domain.friend.entity.Friend;
 import com.app.pingpong.domain.friend.repository.FriendFactory;
-import com.app.pingpong.domain.friend.repository.FriendRepository;
 import com.app.pingpong.domain.member.dto.request.MemberAchieveRequest;
 import com.app.pingpong.domain.member.dto.request.SearchLogRequest;
 import com.app.pingpong.domain.member.dto.request.SignUpRequest;
@@ -11,18 +9,18 @@ import com.app.pingpong.domain.member.dto.response.*;
 import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.domain.member.entity.MemberTeam;
 import com.app.pingpong.domain.member.repository.MemberRepository;
-
+import com.app.pingpong.domain.member.repository.MemberSearchRepository;
 import com.app.pingpong.domain.member.repository.MemberTeamRepository;
 import com.app.pingpong.domain.s3.S3Uploader;
 import com.app.pingpong.domain.team.dto.response.TeamPlanResponse;
 import com.app.pingpong.domain.team.entity.Plan;
 import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.repository.PlanRepository;
-import com.app.pingpong.global.common.BaseResponse;
-import com.app.pingpong.global.common.Status;
-import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.exception.StatusCode;
-import com.app.pingpong.global.util.MemberFacade;
+import com.app.pingpong.global.common.exception.BaseException;
+import com.app.pingpong.global.common.exception.StatusCode;
+import com.app.pingpong.global.common.response.BaseResponse;
+import com.app.pingpong.global.common.status.Status;
+import com.app.pingpong.global.common.util.MemberFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -31,18 +29,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.app.pingpong.global.common.Status.*;
-import static com.app.pingpong.global.exception.StatusCode.*;
-import static com.app.pingpong.global.util.RegexUtil.isRegexNickname;
+import static com.app.pingpong.global.common.exception.StatusCode.*;
+import static com.app.pingpong.global.common.status.Status.*;
+import static com.app.pingpong.global.common.util.RegexUtil.isRegexNickname;
 
 @RequiredArgsConstructor
 @Service
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final MemberSearchRepository memberSearchRepository;
     private final FriendFactory friendFactory;
     private final MemberTeamRepository memberTeamRepository;
     private final PlanRepository planRepository;
@@ -108,8 +108,14 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public List<MemberSearchResponse> findByNickname(String nickname) {
-        List<Member> findMembers = memberRepository.findByStatusAndNicknameContains(ACTIVE, nickname).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+    public List<MemberSearchResponse> findByNickname(String nickname, Long id) {
+        long startTime = System.nanoTime();
+
+        List<Member> findMembers = memberSearchRepository.findByNicknameContainsWithNoOffset(ACTIVE, nickname, id, 10);
+        long endTime = System.nanoTime();
+        long duration = endTime - startTime;
+
+        System.out.println("실행 시간: " + duration + " ns");
 
         /* save log into Redis */
         ListOperations<String, Object> listOps = redisTemplate.opsForList();
@@ -117,7 +123,7 @@ public class MemberService {
         String keyword = nickname;
         listOps.leftPush(loginUserId, keyword);
 
-        List<MemberSearchResponse> friendshipList= new ArrayList<>();
+        List<MemberSearchResponse> friendshipList = new ArrayList<>();
         for (Member findMember : findMembers) {
             boolean isFriend = friendFactory.isFriend(memberFacade.getCurrentMember().getId(), findMember.getId());
             friendshipList.add(MemberSearchResponse.of(findMember, isFriend));
@@ -173,7 +179,7 @@ public class MemberService {
             List<Plan> plansOnDate = planRepository.findAllByManagerIdAndStatusAndDateOrderByDateAsc(loginMemberId, ACTIVE, date);
             long complete = plansOnDate.stream().filter(plan -> plan.getAchievement() == COMPLETE).count();
             long incomplete = plansOnDate.size() - complete;
-            double achievement = (complete + incomplete > 0) ? ((double)complete / (double)(complete + incomplete) * 100.0) : 0.0;
+            double achievement = (complete + incomplete > 0) ? ((double) complete / (double) (complete + incomplete) * 100.0) : 0.0;
             return new MemberAchieveResponse(date, achievement);
         }).collect(Collectors.toList());
     }
@@ -217,9 +223,8 @@ public class MemberService {
             System.out.println("==== str : " + str);
             if (!str.equals("id")) {
                 list.add(str);
-            }
-            else {
-                String memberId = o.toString().substring(2,3);
+            } else {
+                String memberId = o.toString().substring(2, 3);
                 if (!list.contains(memberId) && list.size() <= 10) {
                     list.add(memberId);
                 }
@@ -236,8 +241,7 @@ public class MemberService {
                 Long memberId = Long.parseLong(num);
                 Member member = findMemberByIdAndStatus(memberId, ACTIVE);
                 memberList.add(MemberResponse.of(member));
-            }
-            else {
+            } else {
                 memberList.add(MemberKeywordResponse.of(num));
             }
         }

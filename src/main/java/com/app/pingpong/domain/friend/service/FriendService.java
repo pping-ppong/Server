@@ -8,27 +8,25 @@ import com.app.pingpong.domain.friend.repository.FriendRepository;
 import com.app.pingpong.domain.member.dto.response.MemberResponse;
 import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.domain.member.repository.MemberRepository;
-import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.exception.StatusCode;
-import com.app.pingpong.global.util.MemberFacade;
+import com.app.pingpong.global.common.exception.BaseException;
+import com.app.pingpong.global.common.exception.StatusCode;
+import com.app.pingpong.global.common.util.MemberFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-import static com.app.pingpong.global.common.Status.*;
-import static com.app.pingpong.global.exception.StatusCode.*;
+import static com.app.pingpong.global.common.exception.StatusCode.*;
+import static com.app.pingpong.global.common.status.Status.*;
 
 @RequiredArgsConstructor
 @Service
 public class FriendService {
 
-    private final FriendRepository friendRepository;
     private final MemberRepository memberRepository;
+    private final FriendRepository friendRepository;
     private final FriendFactory friendFactory;
     private final MemberFacade memberFacade;
 
@@ -98,30 +96,5 @@ public class FriendService {
         }
         friend.setStatus(DELETE);
     }
-
-    /*
-    private boolean isMyFriendRequest(Friend f, Long memberId) {
-        if (f.getApplicant() == memberId) {
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isOpponentFriendRequest(Friend f, Long memberId) {
-        if (f.getRespondent() == memberId) {
-            return true;
-        }
-        return false;
-    }
-
-    private void addRespondentInfoToFriendList(Friend f, List friendList) {
-        Member member = memberRepository.findById(f.getRespondent()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        friendList.add(MemberResponse.of(member));
-    }
-
-    private void addApplicantInfoToFriendList(Friend f, List friendList) {
-        Member applicant = f.getApplicant();
-        friendList.add(MemberResponse.of(applicant));
-    } */
 }
 

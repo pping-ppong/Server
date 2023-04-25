@@ -1,7 +1,6 @@
 package com.app.pingpong.domain.team.service;
 
 import com.app.pingpong.domain.friend.repository.FriendFactory;
-import com.app.pingpong.domain.friend.repository.FriendRepository;
 import com.app.pingpong.domain.member.dto.response.MemberResponse;
 import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.domain.member.entity.MemberTeam;
@@ -16,10 +15,10 @@ import com.app.pingpong.domain.team.entity.Plan;
 import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.repository.PlanRepository;
 import com.app.pingpong.domain.team.repository.TeamRepository;
-import com.app.pingpong.global.common.Status;
-import com.app.pingpong.global.exception.BaseException;
-import com.app.pingpong.global.exception.StatusCode;
-import com.app.pingpong.global.util.MemberFacade;
+import com.app.pingpong.global.common.status.Status;
+import com.app.pingpong.global.common.exception.BaseException;
+import com.app.pingpong.global.common.exception.StatusCode;
+import com.app.pingpong.global.common.util.MemberFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,8 +30,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.app.pingpong.global.common.Status.*;
-import static com.app.pingpong.global.exception.StatusCode.*;
+import static com.app.pingpong.global.common.status.Status.*;
+import static com.app.pingpong.global.common.exception.StatusCode.*;
 
 @RequiredArgsConstructor
 @Service
@@ -68,9 +67,9 @@ public class TeamService {
     }
 
     @Transactional
-    public TeamHostResponse updateHost(Long teamId, Long delegatorId) {
+    public TeamHostResponse updateHost(Long teamId, Long delegatorId, Long loginMemberId) {
         Team team = teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
-        Member host = memberRepository.findByIdAndStatus(memberFacade.getCurrentMember().getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+        Member host = memberRepository.findByIdAndStatus(loginMemberId, ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
         Member delegator = memberRepository.findByIdAndStatus(delegatorId, ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
         checkHostForDelegate(team, host, delegator);
         return TeamHostResponse.of(team, getTeamMemberStatus(team));
@@ -112,6 +111,16 @@ public class TeamService {
     }
 
     @Transactional
+    public StatusCode resign(Long teamId, Long loginMemberId) {
+        Team team = checkTeamExists(teamId);
+        MemberTeam memberTeam = checkMemberInTeam(teamId, loginMemberId);
+        checkHostForResign(team, loginMemberId);
+        checkMemberStatusInTeam(memberTeam);
+        memberTeam.setStatus(DELETE);
+        return SUCCESS_RESIGN_TEAM;
+    }
+
+    @Transactional
     public TeamPlanResponse createPlan(Long teamId, TeamPlanRequest request) {
         Member manager = checkManagerExistsAndMembership(teamId, request); // manager != maker
         checkMakerExistsAndMemberShip(teamId);
@@ -129,30 +138,31 @@ public class TeamService {
     }
 
     @Transactional
-    public TeamPlanResponse passPlan(Long teamId, TeamPlanPassRequest request) {
-       Member currentMember = checkCurrentMemberExistsInTeam(teamId);
-       Member mandator = checkMandatorInTeam(teamId, request);
-       Plan plan = passPlan(request, mandator);
-       return TeamPlanResponse.of(plan);
+    public TeamPlanResponse passPlan(Long teamId, Long loginMemberId, TeamPlanPassRequest request) {
+        checkMemberInTeam(teamId, loginMemberId);
+        Member mandator = checkMandatorInTeam(teamId, request);
+        Plan plan = passPlan(request, mandator);
+        return TeamPlanResponse.of(plan);
     }
 
     @Transactional
-    public StatusCode completePlan(Long teamId, Long planId) {
-        checkMemberInTeam(teamId);
+    public StatusCode completePlan(Long teamId, Long planId, Long loginMemberId) {
+        checkMemberInTeam(teamId, loginMemberId);
         complete(teamId, planId);
         return SUCCESS_COMPLETE_PLAN;
     }
 
     @Transactional
-    public StatusCode incompletePlan(Long teamId, Long planId) {
-        checkMemberInTeam(teamId);
+    public StatusCode incompletePlan(Long teamId, Long planId, Long loginMemberId) {
+        checkMemberInTeam(teamId, loginMemberId);
         incomplete(teamId, planId);
         return SUCCESS_INCOMPLETE_PLAN;
     }
 
     @Transactional(readOnly = true)
-    public TeamPlanDetailResponse getTeamCalendarByDate(Long teamId, LocalDate date) {
-        Team team = checkMemberInTeam(teamId);
+    public TeamPlanDetailResponse getTeamCalendarByDate(Long teamId, LocalDate date, Long loginMemberId) {
+        Team team = checkTeamExists(teamId);
+        checkMemberInTeam(teamId, loginMemberId);
         List<MemberResponse> memberList = getMembersByTeamId(teamId);
         List<TeamPlanResponse> planList = getPlansByDate(teamId, date);
         return TeamPlanDetailResponse.of(team, memberList, planList);
@@ -179,58 +189,53 @@ public class TeamService {
     }
 
     @Transactional(readOnly = true)
-    public List<TeamPlanResponse> getTrash(Long teamId) {
+    public List<TeamPlanResponse> getTrash(Long teamId, Long loginMemberId) {
         Team team = teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+        memberTeamRepository.findByTeamIdAndMemberId(teamId, loginMemberId).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
 
-        Member currentMember = memberRepository.findByIdAndStatus(memberFacade.getCurrentMember().getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, currentMember.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
-
-        List<Plan> plansInTrash = planRepository.findAllByTeamIdAndStatusOrderByWastedTimeDesc(teamId, DELETE);
-
+        List<Plan> plansInTrash;
+        if (loginMemberId == team.getHost().getId()) {
+            plansInTrash = planRepository.findAllByTeamIdAndStatusOrderByWastedTimeDesc(teamId, DELETE);
+        } else {
+            plansInTrash = planRepository.findAllByManagerIdAndTeamIdAndStatusOrderByWastedTimeDesc(loginMemberId, teamId, DELETE);
+        }
         return TeamPlanResponse.of(plansInTrash);
     }
 
     @Transactional
-    public StatusCode deleteAllTrash(Long teamId) {
+    public StatusCode deleteAllTrash(Long teamId, Long loginMemberId) {
         Team team = teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
-
-        Member currentMember = memberRepository.findByIdAndStatus(memberFacade.getCurrentMember().getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, currentMember.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
-
-        if (currentMember.getId() != team.getHost().getId()) {
-            throw new BaseException(INVALID_HOST);
-        }
+        memberTeamRepository.findByTeamIdAndMemberId(teamId, loginMemberId).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+        isHost(loginMemberId, team);
 
         List<Plan> plansInTrash = planRepository.findAllByTeamIdAndStatusOrderByWastedTimeDesc(teamId, DELETE);
         for (Plan p : plansInTrash) {
             p.setStatus(PERMANENT);
         }
-
         return SUCCESS_DELETE_ALL_TRASH;
     }
 
     @Transactional
-    public StatusCode deleteTrash(Long teamId, Long planId) {
+    public StatusCode deleteTrash(Long teamId, Long planId, Long loginMemberId) {
         Team team = teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
-
-        Member currentMember = memberRepository.findByIdAndStatus(memberFacade.getCurrentMember().getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, currentMember.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
-
-        if (currentMember.getId() != team.getHost().getId()) {
-            throw new BaseException(INVALID_HOST);
-        }
+        memberTeamRepository.findByTeamIdAndMemberId(teamId, loginMemberId).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+        isHost(loginMemberId, team);
 
         Plan plan = planRepository.findById(planId).orElseThrow(() -> new BaseException(PLAN_NOT_FOUND));
-        plan.setStatus(DELETE);
+        plan.setStatus(PERMANENT);
         return SUCCESS_DELETE_TRASH;
     }
 
-    @Transactional
-    public StatusCode recoverTrash(Long teamId, Long planId) {
-        Team team = teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+    private void isHost(Long loginMemberId, Team team) {
+        if (loginMemberId != team.getHost().getId()) {
+            throw new BaseException(INVALID_HOST);
+        }
+    }
 
-        Member currentMember = memberRepository.findByIdAndStatus(memberFacade.getCurrentMember().getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, currentMember.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+    @Transactional
+    public StatusCode recoverTrash(Long teamId, Long planId, Long loginMemberId) {
+        Team team = teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+        memberTeamRepository.findByTeamIdAndMemberId(teamId, loginMemberId).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
 
         Plan plan = planRepository.findByIdAndStatus(planId, DELETE).orElseThrow(() -> new BaseException(PLAN_NOT_FOUND));
         plan.setStatus(ACTIVE);
@@ -292,6 +297,36 @@ public class TeamService {
         memberTeams.forEach(memberTeam -> memberTeam.setStatus(DELETE));
     }
 
+    private List<Member> getMembersFromMemberTeams(List<MemberTeam> memberTeams) {
+        return memberTeams.stream()
+                .map(MemberTeam::getMember)
+                .collect(Collectors.toList());
+    }
+
+    private List<TeamMemberResponse> buildTeamMemberResponseList(List<Member> members, Team team) {
+        List<TeamMemberResponse> list = new ArrayList<>();
+        for (Member findMember : members) {
+            boolean isFriend = friendFactory.isFriend(team.getHost().getId(), findMember.getId());
+            MemberTeam isStatus = memberTeamRepository.findByTeamIdAndMemberId(team.getId(), findMember.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+            list.add(TeamMemberResponse.of(findMember, team, isFriend, isStatus));
+        }
+        return list;
+    }
+
+    private Team checkTeamExists(Long teamId) {
+        return teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+    }
+
+    private MemberTeam checkMemberInTeam(Long teamId, Long loginMemberId) {
+        return memberTeamRepository.findByTeamIdAndMemberId(teamId, loginMemberId).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+    }
+
+    private Member checkMandatorInTeam(Long teamId, TeamPlanPassRequest request) {
+        Member mandator = memberRepository.findByIdAndStatus(request.getMandatorId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+        memberTeamRepository.findByTeamIdAndMemberId(teamId, mandator.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+        return mandator;
+    }
+
     private void checkHostForDelegate(Team team, Member host, Member delegator) {
         if (team.getHost().getId() != host.getId()) {
             throw new BaseException(INVALID_HOST);
@@ -311,24 +346,16 @@ public class TeamService {
         }
     }
 
-    private List<Member> getMembersFromMemberTeams(List<MemberTeam> memberTeams) {
-        return memberTeams.stream()
-                .map(MemberTeam::getMember)
-                .collect(Collectors.toList());
-    }
-
-    private List<TeamMemberResponse> buildTeamMemberResponseList(List<Member> members, Team team) {
-        List<TeamMemberResponse> list = new ArrayList<>();
-        for (Member findMember : members) {
-            boolean isFriend = friendFactory.isFriend(team.getHost().getId(), findMember.getId());
-            MemberTeam isStatus = memberTeamRepository.findByTeamIdAndMemberId(team.getId(), findMember.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
-            list.add(TeamMemberResponse.of(findMember, team, isFriend, isStatus));
+    private void checkHostForResign(Team team, Long loginMemberId) {
+        if (team.getHost().getId() == loginMemberId) {
+            throw new BaseException(INVALID_RESIGN);
         }
-        return list;
     }
 
-    private void checkTeamExists(Long teamId) {
-        teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+    private void checkMemberStatusInTeam(MemberTeam memberTeam) {
+        if (memberTeam.getStatus().equals(WAIT) || memberTeam.getStatus().equals(DELETE)) {
+            throw new BaseException(INVALID_RESIGN_STATUS);
+        }
     }
 
     private void checkTeamInvitationAlreadyExists(Long teamId) {
@@ -371,18 +398,6 @@ public class TeamService {
         return plan;
     }
 
-    private Member checkCurrentMemberExistsInTeam(Long teamId) {
-        Member currentMember = memberRepository.findByIdAndStatus(memberFacade.getCurrentMember().getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, currentMember.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
-        return currentMember;
-    }
-
-    private Member checkMandatorInTeam(Long teamId, TeamPlanPassRequest request) {
-        Member mandator = memberRepository.findByIdAndStatus(request.getMandatorId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, mandator.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
-        return mandator;
-    }
-
     private Plan passPlan(TeamPlanPassRequest request, Member mandator) {
         Plan plan = planRepository.findById(request.getPlanId()).orElseThrow(() -> new BaseException(PLAN_NOT_FOUND));
         if (plan.getManager().getId() != memberFacade.getCurrentMember().getId()) {
@@ -393,13 +408,6 @@ public class TeamService {
         }
         plan.setManager(mandator);
         return plan;
-    }
-
-    private Team checkMemberInTeam(Long teamId) {
-        Team team = teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
-        Member member = memberRepository.findByIdAndStatus(memberFacade.getCurrentMember().getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, member.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
-        return team;
     }
 
     private void complete(Long teamId, Long planId) {
