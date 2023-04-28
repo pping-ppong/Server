@@ -1,6 +1,7 @@
 package com.app.pingpong.domain.member.service;
 
 import com.app.pingpong.domain.friend.repository.FriendFactory;
+import com.app.pingpong.domain.image.S3Uploader;
 import com.app.pingpong.domain.member.dto.request.MemberAchieveRequest;
 import com.app.pingpong.domain.member.dto.request.SearchLogRequest;
 import com.app.pingpong.domain.member.dto.request.SignUpRequest;
@@ -11,7 +12,6 @@ import com.app.pingpong.domain.member.entity.MemberTeam;
 import com.app.pingpong.domain.member.repository.MemberRepository;
 import com.app.pingpong.domain.member.repository.MemberSearchRepository;
 import com.app.pingpong.domain.member.repository.MemberTeamRepository;
-import com.app.pingpong.domain.s3.S3Uploader;
 import com.app.pingpong.domain.team.dto.response.TeamPlanResponse;
 import com.app.pingpong.domain.team.entity.Plan;
 import com.app.pingpong.domain.team.entity.Team;
@@ -109,13 +109,7 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public List<MemberSearchResponse> findByNickname(String nickname, Long id) {
-        long startTime = System.nanoTime();
-
         List<Member> findMembers = memberSearchRepository.findByNicknameContainsWithNoOffset(ACTIVE, nickname, id, 10);
-        long endTime = System.nanoTime();
-        long duration = endTime - startTime;
-
-        System.out.println("실행 시간: " + duration + " ns");
 
         /* save log into Redis */
         ListOperations<String, Object> listOps = redisTemplate.opsForList();
@@ -239,6 +233,7 @@ public class MemberService {
         for (String num : numList) {
             if (isLong(num)) {
                 Long memberId = Long.parseLong(num);
+                System.out.println("========= memberId " + memberId);
                 Member member = findMemberByIdAndStatus(memberId, ACTIVE);
                 memberList.add(MemberResponse.of(member));
             } else {

@@ -1,5 +1,6 @@
 package com.app.pingpong.domain.friend.service;
 
+import com.app.pingpong.domain.friend.dto.request.FriendRefuseRequest;
 import com.app.pingpong.domain.friend.dto.request.FriendRequest;
 import com.app.pingpong.domain.friend.dto.response.FriendResponse;
 import com.app.pingpong.domain.friend.entity.Friend;
@@ -8,9 +9,10 @@ import com.app.pingpong.domain.friend.repository.FriendRepository;
 import com.app.pingpong.domain.member.dto.response.MemberResponse;
 import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.domain.member.repository.MemberRepository;
+import com.app.pingpong.domain.notification.entity.Notification;
+import com.app.pingpong.domain.notification.repository.NotificationRepository;
 import com.app.pingpong.global.common.exception.BaseException;
 import com.app.pingpong.global.common.exception.StatusCode;
-import com.app.pingpong.global.common.util.MemberFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,9 +30,8 @@ public class FriendService {
     private final MemberRepository memberRepository;
     private final FriendRepository friendRepository;
     private final FriendFactory friendFactory;
-    private final MemberFacade memberFacade;
+    private final NotificationRepository notificationRepository;
 
-    @Transactional
     public FriendResponse apply(FriendRequest request) {
         Member applicant = memberRepository.findByIdAndStatus(request.getApplicantId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
         Member respondent = memberRepository.findByIdAndStatus(request.getRespondentId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
@@ -38,17 +39,17 @@ public class FriendService {
         return FriendResponse.of(friendRepository.save(request.toEntity(applicant.getId(), respondent.getId())));
     }
 
-    @Transactional
-    public StatusCode accept(Long opponentId) {
-        Friend request = getWaitingFriendRequest(opponentId);
-        checkAndSetStatusActive(request);
+    public StatusCode accept(Long opponentId, Long loginMemberId) {
+        Friend request = getWaitingFriendRequest(opponentId, loginMemberId);
+        setStatusActive(request);
+        setNotificationAccepted(opponentId, loginMemberId);
         return SUCCESS_ACCEPT_FRIEND;
     }
 
-    @Transactional
-    public StatusCode refuse(Long opponentId) {
-        Friend request = getWaitingFriendRequest(opponentId);
-        checkAndSetStatusDelete(request);
+    public StatusCode refuse(FriendRefuseRequest request, Long loginMemberId) {
+        Friend friend = getWaitingFriendRequest(request.getOpponentId(), loginMemberId);
+        setStatusDelete(friend);
+        setNotificationAccepted(request.getOpponentId(), loginMemberId);
         return SUCCESS_REFUSE_FRIEND;
     }
 
@@ -77,24 +78,27 @@ public class FriendService {
         }
     }
 
-    private Friend getWaitingFriendRequest(Long opponentId) {
-        Member currentMember = memberFacade.getCurrentMember();
-        Friend friend = friendFactory.findWaitRequestBy(opponentId, currentMember.getId()).orElseThrow(() -> new BaseException(FRIEND_NOT_FOUND));
+    private Friend getWaitingFriendRequest(Long opponentId, Long loginMemberId) {
+        boolean friendship = friendFactory.isFriend(opponentId, loginMemberId);
+        if (friendship) {
+            throw new BaseException(ALREADY_ON_FRIEND);
+        }
+        Friend friend = friendFactory.findWaitRequestBy(opponentId, loginMemberId).orElseThrow(() -> new BaseException(FRIEND_NOT_FOUND));
         return friend;
     }
 
-    private void checkAndSetStatusActive(Friend friend) {
-        if (friend.getStatus().equals(ACTIVE)) {
-            throw new BaseException(ALREADY_ON_FRIEND);
-        }
+    private void setStatusActive(Friend friend) {
         friend.setStatus(ACTIVE);
     }
 
-    private void checkAndSetStatusDelete(Friend friend) {
-        if (friend.getStatus().equals(ACTIVE)) {
-            throw new BaseException(ALREADY_ON_FRIEND);
-        }
+    private void setStatusDelete(Friend friend) {
         friend.setStatus(DELETE);
+    }
+
+    private void setNotificationAccepted(Long opponentId, Long loginMemberId) {
+        Notification notification = notificationRepository.findByMemberIdAndOpponentId(opponentId, loginMemberId);
+        notification.setAccepted();
+        notificationRepository.save(notification);
     }
 }
 
