@@ -1,6 +1,6 @@
 package com.app.pingpong.domain.member.service;
 
-import com.app.pingpong.domain.friend.repository.FriendFactory;
+import com.app.pingpong.domain.friend.repository.FriendQueryRepository;
 import com.app.pingpong.domain.image.S3Uploader;
 import com.app.pingpong.domain.member.dto.request.MemberAchieveRequest;
 import com.app.pingpong.domain.member.dto.request.SearchLogRequest;
@@ -18,7 +18,6 @@ import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.repository.PlanRepository;
 import com.app.pingpong.global.common.exception.BaseException;
 import com.app.pingpong.global.common.exception.StatusCode;
-import com.app.pingpong.global.common.response.BaseResponse;
 import com.app.pingpong.global.common.status.Status;
 import com.app.pingpong.global.common.util.MemberFacade;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +42,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final MemberSearchRepository memberSearchRepository;
-    private final FriendFactory friendFactory;
+    private final FriendQueryRepository friendQueryRepository;
     private final MemberTeamRepository memberTeamRepository;
     private final PlanRepository planRepository;
 
@@ -59,14 +58,14 @@ public class MemberService {
     }
 
     @Transactional
-    public BaseResponse<String> validateNickname(String nickname) {
+    public StatusCode validateNickname(String nickname) {
         if (!isRegexNickname(nickname)) {
             throw new BaseException(INVALID_NICKNAME);
         }
         if (memberRepository.existsMemberByNicknameAndStatus(nickname)) {
-            throw new BaseException(USER_NICKNAME_ALREADY_EXISTS);
+            throw new BaseException(MEMBER_NICKNAME_ALREADY_EXISTS);
         }
-        return new BaseResponse(SUCCESS_VALIDATE_NICKNAME);
+        return SUCCESS_VALIDATE_NICKNAME;
     }
 
     @Transactional(readOnly = true)
@@ -87,23 +86,23 @@ public class MemberService {
     }
 
     @Transactional
-    public BaseResponse<String> delete(Long id) {
+    public StatusCode delete(Long id) {
         Member member = findMemberByIdAndStatus(id, ACTIVE);
         member.setStatus(DELETE);
-        return new BaseResponse<>(SUCCESS_DELETE_MEMBER);
+        return SUCCESS_DELETE_MEMBER;
     }
 
     @Transactional(readOnly = true)
     public MemberDetailResponse getMyPage(Long id) {
         Member member = findMemberByIdAndStatus(id, ACTIVE);
-        int friendCount = friendFactory.findFriendCount(id);
+        int friendCount = friendQueryRepository.findFriendCount(id);
         return MemberDetailResponse.of(member, friendCount);
     }
 
     @Transactional(readOnly = true)
     public MemberDetailResponse getOppPage(Long id) {
         Member member = findMemberByIdAndStatus(id, ACTIVE);
-        int friendCount = friendFactory.findFriendCount(id);
+        int friendCount = friendQueryRepository.findFriendCount(id);
         return MemberDetailResponse.of(member, friendCount);
     }
 
@@ -119,7 +118,7 @@ public class MemberService {
 
         List<MemberSearchResponse> friendshipList = new ArrayList<>();
         for (Member findMember : findMembers) {
-            boolean isFriend = friendFactory.isFriend(memberFacade.getCurrentMember().getId(), findMember.getId());
+            boolean isFriend = friendQueryRepository.isFriend(memberFacade.getCurrentMember().getId(), findMember.getId());
             friendshipList.add(MemberSearchResponse.of(findMember, isFriend));
         }
         return friendshipList;
@@ -127,9 +126,9 @@ public class MemberService {
 
     @Transactional
     public StatusCode saveSearchLog(SearchLogRequest request, Long loginMemberId) {
-        if (request.getId() == loginMemberId) {
-            throw new BaseException(INVALID_SAVE_SEARCH_LOG);
-        }
+        //if (request.getId() == loginMemberId) {
+        //    throw new BaseException(INVALID_SAVE_SEARCH_LOG);
+        //}
 
         /* save search log into Redis */
         Member member = findMemberByIdAndStatus(request.getId(), ACTIVE);

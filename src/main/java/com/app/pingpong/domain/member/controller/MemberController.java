@@ -33,8 +33,8 @@ public class MemberController {
 
     @ResponseBody
     @PostMapping("/validate")
-    public BaseResponse<String> validate(@RequestParam String nickname) {
-        return memberService.validateNickname(nickname);
+    public BaseResponse<StatusCode> validate(@RequestParam String nickname) {
+        return new BaseResponse<>(memberService.validateNickname(nickname));
     }
 
     @ResponseBody
@@ -51,8 +51,8 @@ public class MemberController {
 
     @ResponseBody
     @DeleteMapping("/{id}")
-    public BaseResponse<String> delete(@PathVariable Long id) {
-        return memberService.delete(id);
+    public BaseResponse<StatusCode> delete(@PathVariable Long id) {
+        return new BaseResponse<>(memberService.delete(id));
     }
 
     @ResponseBody

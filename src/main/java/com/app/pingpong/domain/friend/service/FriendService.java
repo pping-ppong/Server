@@ -1,10 +1,9 @@
 package com.app.pingpong.domain.friend.service;
 
-import com.app.pingpong.domain.friend.dto.request.FriendRefuseRequest;
 import com.app.pingpong.domain.friend.dto.request.FriendRequest;
 import com.app.pingpong.domain.friend.dto.response.FriendResponse;
 import com.app.pingpong.domain.friend.entity.Friend;
-import com.app.pingpong.domain.friend.repository.FriendFactory;
+import com.app.pingpong.domain.friend.repository.FriendQueryRepository;
 import com.app.pingpong.domain.friend.repository.FriendRepository;
 import com.app.pingpong.domain.member.dto.response.MemberResponse;
 import com.app.pingpong.domain.member.entity.Member;
@@ -29,7 +28,7 @@ public class FriendService {
 
     private final MemberRepository memberRepository;
     private final FriendRepository friendRepository;
-    private final FriendFactory friendFactory;
+    private final FriendQueryRepository friendQueryRepository;
     private final NotificationRepository notificationRepository;
 
     public FriendResponse apply(FriendRequest request) {
@@ -46,10 +45,10 @@ public class FriendService {
         return SUCCESS_ACCEPT_FRIEND;
     }
 
-    public StatusCode refuse(FriendRefuseRequest request, Long loginMemberId) {
-        Friend friend = getWaitingFriendRequest(request.getOpponentId(), loginMemberId);
+    public StatusCode refuse(Long opponentId, Long loginMemberId) {
+        Friend friend = getWaitingFriendRequest(opponentId, loginMemberId);
         setStatusDelete(friend);
-        setNotificationAccepted(request.getOpponentId(), loginMemberId);
+        setNotificationAccepted(opponentId, loginMemberId);
         return SUCCESS_REFUSE_FRIEND;
     }
 
@@ -65,25 +64,25 @@ public class FriendService {
 
     private void checkFriendRequest(Member applicant, Member respondent) {
         /* 내가 상대방에게 보낸 친구 신청이 있는지 확인 -> WAIT */
-        if (friendFactory.existsRequestToRespondent(applicant.getId(), respondent.getId(), WAIT)) {
-            throw new BaseException(USER_ALREADY_FRIEND_REQUEST);
+        if (friendQueryRepository.existsRequestToRespondent(applicant.getId(), respondent.getId(), WAIT)) {
+            throw new BaseException(MEMBER_ALREADY_FRIEND_REQUEST);
         }
         /* 상대방이 나한테 보낸 친구신청이 있는지 확인 */
-        if (friendFactory.existsRequestToRespondent(respondent.getId(), applicant.getId(), WAIT)) {
-            throw new BaseException(USER_ALREADY_GET_FRIEND_REQUEST);
+        if (friendQueryRepository.existsRequestToRespondent(respondent.getId(), applicant.getId(), WAIT)) {
+            throw new BaseException(MEMBER_ALREADY_GET_FRIEND_REQUEST);
         }
         /* 이미 친구를 수락하였는지 확인 -> */
-        if (friendFactory.existsRequestToRespondent(applicant.getId(), respondent.getId(), ACTIVE)) {
+        if (friendQueryRepository.existsRequestToRespondent(applicant.getId(), respondent.getId(), ACTIVE)) {
             throw new BaseException(ALREADY_ON_FRIEND);
         }
     }
 
     private Friend getWaitingFriendRequest(Long opponentId, Long loginMemberId) {
-        boolean friendship = friendFactory.isFriend(opponentId, loginMemberId);
+        boolean friendship = friendQueryRepository.isFriend(opponentId, loginMemberId);
         if (friendship) {
             throw new BaseException(ALREADY_ON_FRIEND);
         }
-        Friend friend = friendFactory.findWaitRequestBy(opponentId, loginMemberId).orElseThrow(() -> new BaseException(FRIEND_NOT_FOUND));
+        Friend friend = friendQueryRepository.findWaitRequestBy(opponentId, loginMemberId).orElseThrow(() -> new BaseException(FRIEND_NOT_FOUND));
         return friend;
     }
 
@@ -96,7 +95,7 @@ public class FriendService {
     }
 
     private void setNotificationAccepted(Long opponentId, Long loginMemberId) {
-        Notification notification = notificationRepository.findByMemberIdAndOpponentId(opponentId, loginMemberId);
+        Notification notification = notificationRepository.findByMemberIdAndOpponentId(opponentId, loginMemberId).orElseThrow(() -> new BaseException(NOTIFICATION_NOT_FOUND));
         notification.setAccepted();
         notificationRepository.save(notification);
     }
