@@ -14,6 +14,7 @@ import com.app.pingpong.domain.social.entity.KakaoOAuth;
 import com.app.pingpong.global.common.exception.BaseException;
 import com.app.pingpong.global.common.exception.StatusCode;
 import com.app.pingpong.global.security.JwtTokenProvider;
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import static com.app.pingpong.global.common.exception.StatusCode.*;
+import static com.app.pingpong.global.common.status.Status.ACTIVE;
 
 @RequiredArgsConstructor
 @Service
@@ -55,7 +57,7 @@ public class SocialService {
     }
 
     public MemberLoginResponse login(MemberLoginRequest request) {
-        Member member = memberRepository.findByEmail(request.getEmail()).orElseThrow(() -> new BaseException(EMAIL_NOT_FOUND));
+        Member member = memberRepository.findByEmailAndStatus(request.getEmail(), ACTIVE).orElseThrow(() -> new BaseException(EMAIL_NOT_FOUND));
 
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(request.getEmail(), request.getSocialId());
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
@@ -70,7 +72,12 @@ public class SocialService {
     @Transactional
     public StatusCode logout(MemberLogoutRequest request) {
         ValueOperations<String, String> valueOperations = redisTemplate.opsForValue();
-        valueOperations.getAndDelete(request.getEmail());
+        //valueOperations.getAndDelete(request.getEmail());
+        //String key = valueOperations.get(request.getEmail());
+        boolean deleted = valueOperations.getOperations().delete(request.getEmail());
+        if (!deleted) {
+            throw new BaseException(INVALID_LOGOUT_EMAIL);
+        }
         return SUCCESS_LOGOUT;
     }
 
@@ -81,8 +88,15 @@ public class SocialService {
             throw new BaseException(INVALID_REFRESH_TOKEN);
         }
 
-        // 2. 액세스 토큰을 통해 유저 인증 정보를 가져옴 -> Redis에서 리프레시 토큰 가져옴
-        Authentication authentication = jwtTokenProvider.getAuthentication(tokenRequest.getAccessToken());
+        // 2. 인증정보 조회
+        Authentication authentication = null;
+        try {
+            authentication = jwtTokenProvider.getAuthentication(tokenRequest.getAccessToken());
+        } catch (ExpiredJwtException e) {
+            // 액세스 토큰이 만료된 경우, 리프레시 토큰으로 새로운 액세스 토큰 발급
+            authentication = jwtTokenProvider.getAuthenticationFromRefreshToken(tokenRequest.getRefreshToken());
+        }
+
         ValueOperations<String, String> valueOperations = redisTemplate.opsForValue();
         String refreshToken = valueOperations.get(authentication.getName());
 

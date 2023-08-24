@@ -2,7 +2,6 @@ package com.app.pingpong.domain.member.service;
 
 import com.app.pingpong.domain.friend.repository.FriendQueryRepository;
 import com.app.pingpong.domain.image.S3Uploader;
-import com.app.pingpong.domain.member.dto.request.MemberAchieveRequest;
 import com.app.pingpong.domain.member.dto.request.SearchLogRequest;
 import com.app.pingpong.domain.member.dto.request.SignUpRequest;
 import com.app.pingpong.domain.member.dto.request.UpdateRequest;
@@ -108,7 +107,8 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public List<MemberSearchResponse> findByNickname(String nickname, Long id) {
-        List<Member> findMembers = memberSearchRepository.findByNicknameContainsWithNoOffset(ACTIVE, nickname, id, 10);
+        List<Member> findMembers = memberSearchRepository.findByNicknameContainsWithNoOffset(ACTIVE, nickname, id, 10)
+                .orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
 
         /* save log into Redis */
         ListOperations<String, Object> listOps = redisTemplate.opsForList();
@@ -126,9 +126,9 @@ public class MemberService {
 
     @Transactional
     public StatusCode saveSearchLog(SearchLogRequest request, Long loginMemberId) {
-        //if (request.getId() == loginMemberId) {
-        //    throw new BaseException(INVALID_SAVE_SEARCH_LOG);
-        //}
+        if (request.getId().equals(loginMemberId)) {
+            throw new BaseException(INVALID_SAVE_SEARCH_LOG);
+        }
 
         /* save search log into Redis */
         Member member = findMemberByIdAndStatus(request.getId(), ACTIVE);
@@ -165,8 +165,8 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public List<MemberAchieveResponse> getMemberAchievementRate(MemberAchieveRequest request, Long loginMemberId) {
-        List<Plan> plans = planRepository.findAllByManagerIdAndStatusAndDateBetweenOrderByDateAsc(loginMemberId, ACTIVE, request.getStartDate(), request.getEndDate());
+    public List<MemberAchieveResponse> getMemberAchievementRate(LocalDate startDate, LocalDate endDate, Long loginMemberId) {
+        List<Plan> plans = planRepository.findAllByManagerIdAndStatusAndDateBetweenOrderByDateAsc(loginMemberId, ACTIVE, startDate, endDate);
 
         return plans.stream().map(Plan::getDate).distinct().map(date -> {
             List<Plan> plansOnDate = planRepository.findAllByManagerIdAndStatusAndDateOrderByDateAsc(loginMemberId, ACTIVE, date);
@@ -211,14 +211,14 @@ public class MemberService {
         ListOperations<String, Object> listOps = redisTemplate.opsForList();
 
         List<String> list = new ArrayList<>();
-        for (Object o : listOps.range(loginMemberId, 0, -1)) {
+        for (Object o : listOps.range(loginMemberId, 0, 20)) {
             String str = o.toString().substring(0, 2);
-            System.out.println("==== str : " + str);
-            if (!str.equals("id")) {
+
+            if (list.size() < 10 && !str.equals("id")) { // keyword
                 list.add(str);
             } else {
-                String memberId = o.toString().substring(2, 3);
-                if (!list.contains(memberId) && list.size() <= 10) {
+                String memberId = o.toString().substring(2);
+                if (!list.contains(memberId) && list.size() < 10) {
                     list.add(memberId);
                 }
             }
@@ -232,7 +232,6 @@ public class MemberService {
         for (String num : numList) {
             if (isLong(num)) {
                 Long memberId = Long.parseLong(num);
-                System.out.println("========= memberId " + memberId);
                 Member member = findMemberByIdAndStatus(memberId, ACTIVE);
                 memberList.add(MemberResponse.of(member));
             } else {
