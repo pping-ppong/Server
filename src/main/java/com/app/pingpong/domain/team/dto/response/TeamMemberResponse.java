@@ -16,21 +16,17 @@ public class TeamMemberResponse {
     private String nickname;
     private String profileImage;
     private Long hostId;
-    private boolean isFriend;
+    private Status friendship;
     private Status status;
 
-    public static TeamMemberResponse of(Member findMember, Team team, boolean isFriend, MemberTeam isStatus) {
+    public static TeamMemberResponse of(Member findMember, Team team, Status isFriend, MemberTeam isStatus) {
         return TeamMemberResponse.builder()
                 .memberId(findMember.getId())
                 .nickname(findMember.getNickname())
                 .profileImage(findMember.getProfileImage())
                 .hostId(team.getHost().getId())
-                .isFriend(isFriend)
+                .friendship(isFriend)
                 .status(isStatus.getStatus())
                 .build();
-    }
-
-    public boolean getFriendStatus() {
-        return isFriend;
     }
 }

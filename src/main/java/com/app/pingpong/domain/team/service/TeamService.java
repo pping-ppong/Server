@@ -1,6 +1,7 @@
 package com.app.pingpong.domain.team.service;
 
 import com.app.pingpong.domain.friend.repository.FriendQueryRepository;
+import com.app.pingpong.domain.friend.repository.FriendRepository;
 import com.app.pingpong.domain.member.dto.response.MemberResponse;
 import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.domain.member.entity.MemberTeam;
@@ -39,6 +40,7 @@ public class TeamService {
 
     private final MemberRepository memberRepository;
     private final FriendQueryRepository friendQueryRepository;
+    private final FriendRepository friendRepository;
     private final TeamRepository teamRepository;
     private final PlanRepository planRepository;
     private final MemberTeamRepository memberTeamRepository;
@@ -53,7 +55,20 @@ public class TeamService {
 
         setTeam(team, host);
         setTeamToHost(team, host);
-        setTeamToMembers(team, host, request);
+        setTeamToMembers(team, request);
+
+        return TeamResponse.of(memberTeamRepository.findAllByTeamId(team.getId()));
+    }
+
+    @Transactional
+    public TeamResponse update(Long id, TeamRequest request) {
+        Team team = teamRepository.findByIdAndStatus(id, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+
+        checkHost(team.getHost());
+        team.setName(request.getName());
+        setTeamToMembers(team, request);
+
+        // 나랑 친구인지 여부 확인하는 예외처리 필요?
 
         return TeamResponse.of(memberTeamRepository.findAllByTeamId(team.getId()));
     }
@@ -227,6 +242,7 @@ public class TeamService {
         }
         for (Long id : request.getMemberId()) {
             memberRepository.findByIdAndStatus(id, ACTIVE).orElseThrow(() -> new BaseException(INVALID_INVITER));
+            friendQueryRepository.checkFriendship(loginMember.getId(), id);
         }
     }
 
@@ -243,18 +259,25 @@ public class TeamService {
         memberTeamRepository.save(memberTeam);
     }
 
-    private void setTeamToMembers(Team newTeam, Member host, TeamRequest request) {
+    private void setTeamToMembers(Team newTeam, TeamRequest request) {
         request.getMemberId().stream()
                 .map(memberRepository::findById)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .forEach(member -> {
+                    if (isMemberAlreadyInTeamWithStatus(newTeam, member, WAIT) || isMemberAlreadyInTeamWithStatus(newTeam, member, ACTIVE)) {
+                        throw new BaseException(ALREADY_INVITE_TEAM);
+                    }
                     MemberTeam memberTeam = new MemberTeam();
                     memberTeam.setTeam(newTeam);
                     memberTeam.setMember(member);
                     memberTeam.setStatus(WAIT);
                     memberTeamRepository.save(memberTeam);
                 });
+    }
+
+    private boolean isMemberAlreadyInTeamWithStatus(Team team, Member member, Status status) {
+        return memberTeamRepository.existsByTeamIdAndMemberIdAndStatus(team.getId(), member.getId(), status);
     }
 
     private void checkHost(Member host) {
@@ -273,13 +296,14 @@ public class TeamService {
         Team team = teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
         Member host = memberRepository.findByIdAndStatus(loginMemberId, ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
         Member delegator = memberRepository.findByIdAndStatus(delegatorId, ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+        memberTeamRepository.findByTeamIdAndMemberIdAndStatus(teamId, delegatorId, ACTIVE).orElseThrow(() -> new BaseException(DELEGATOR_NOT_FOUND_IN_TEAM));
 
         if (!team.getHost().equals(host)) {
             throw new BaseException(INVALID_HOST);
-        }
-        if (team.getHost().equals(delegator)) {
+        } else if (team.getHost().equals(delegator)) {
             throw new BaseException(ALREADY_TEAM_HOST);
         }
+
         team.setHost(delegator);
         return team;
     }
@@ -308,8 +332,16 @@ public class TeamService {
     }
 
     private void emitMember(Long teamId, Long emitterId) {
-        MemberTeam memberTeam = memberTeamRepository.findByTeamIdAndMemberIdAndStatus(teamId, emitterId, ACTIVE).orElseThrow(() -> new BaseException(MEMBER_ALREADY_EMIT));
-        memberTeam.setStatus(DELETE);
+        MemberTeam memberTeam = memberTeamRepository.findByTeamIdAndMemberId(teamId, emitterId).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+
+        Status status = memberTeam.getStatus();
+        if (status.equals(ACTIVE)) {
+            memberTeam.setStatus(DELETE);
+        } else if (status.equals(WAIT)) {
+            throw new BaseException(INVALID_EMITTER);
+        } else if (status.equals(DELETE)) {
+            throw new BaseException(MEMBER_ALREADY_EMIT);
+        }
     }
 
     private List<Member> getMembersFromMemberTeams(List<MemberTeam> memberTeams) {
@@ -321,10 +353,12 @@ public class TeamService {
 
     private List<TeamMemberResponse> buildTeamMemberResponseList(List<Member> members, Team team) {
         List<TeamMemberResponse> list = new ArrayList<>();
+        Long loginMemberId = memberFacade.getCurrentMember().getId();
+
         for (Member findMember : members) {
-            boolean isFriend = friendQueryRepository.isFriend(team.getHost().getId(), findMember.getId());
+            Status friendStatus = friendQueryRepository.findFriendStatus(loginMemberId, findMember.getId());
             MemberTeam status = memberTeamRepository.findByTeamIdAndMemberId(team.getId(), findMember.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
-            list.add(TeamMemberResponse.of(findMember, team, isFriend, status));
+            list.add(TeamMemberResponse.of(findMember, team, friendStatus, status));
         }
         return list;
     }
@@ -371,13 +405,13 @@ public class TeamService {
 
     private Member checkManagerExistsAndMembership(Long teamId, TeamPlanRequest request) {
         Member manager = memberRepository.findByIdAndStatus(request.getManagerId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, manager.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+        memberTeamRepository.findByTeamIdAndMemberIdAndStatus(teamId, manager.getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
         return manager;
     }
 
     private void checkMakerExistsAndMemberShip(Long teamId) {
         Member maker = memberRepository.findByIdAndStatus(memberFacade.getCurrentMember().getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
-        memberTeamRepository.findByTeamIdAndMemberId(teamId, maker.getId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+        memberTeamRepository.findByTeamIdAndMemberIdAndStatus(teamId, maker.getId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
     }
 
     private Plan createPlan(Long teamId, Member manager, TeamPlanRequest request) {
@@ -443,11 +477,11 @@ public class TeamService {
                 .stream()
                 .map(plan -> TeamPlanResponse.builder()
                         .planId(plan.getId())
-                        .managerId(plan.getManager().getId())
                         .title(plan.getTitle())
                         .date(plan.getDate())
                         .status(plan.getStatus())
                         .achievement(plan.getAchievement())
+                        .manager(MemberResponse.of(plan.getManager()))
                         .build()
                 )
                 .collect(Collectors.toList());
@@ -460,9 +494,9 @@ public class TeamService {
         memberTeamRepository.findByTeamIdAndMemberId(team.getId(), loginMemberId).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
 
         List<Plan> plansInTrash;
-        if (loginMember.equals(team.getHost())) {
+        if (loginMember.equals(team.getHost())) { // 방장이라면 팀에 대한 모든 삭제된 일정 가져옴
             plansInTrash = planRepository.findAllByTeamIdAndStatusOrderByWastedTimeDesc(team.getId(), DELETE);
-        } else {
+        } else { // 방장이 아니면 내가 담당자인것만 가져옴옴
             plansInTrash = planRepository.findAllByManagerIdAndTeamIdAndStatusOrderByWastedTimeDesc(loginMemberId, team.getId(), DELETE);
         }
         return plansInTrash;

@@ -194,11 +194,11 @@ public class MemberService {
     private TeamPlanResponse createTeamPlanResponse(Plan plan) {
         return TeamPlanResponse.builder()
                 .planId(plan.getId())
-                .managerId(plan.getManager().getId())
                 .title(plan.getTitle())
                 .date(plan.getDate())
                 .status(plan.getStatus())
                 .achievement(plan.getAchievement())
+                .manager(MemberResponse.of(plan.getManager()))
                 .build();
     }
 
@@ -211,10 +211,13 @@ public class MemberService {
         ListOperations<String, Object> listOps = redisTemplate.opsForList();
 
         List<String> list = new ArrayList<>();
-        for (Object o : listOps.range(loginMemberId, 0, 20)) {
+        List<Object> redisData = listOps.range(loginMemberId, 0, 20);
+        System.out.println("=====================" + redisData.get(0));
+
+        for (Object o : redisData) {
             String str = o.toString().substring(0, 2);
 
-            if (list.size() < 10 && !str.equals("id")) { // keyword
+            if (!str.equals("id") && list.size() < 10) { // keyword
                 list.add(str);
             } else {
                 String memberId = o.toString().substring(2);

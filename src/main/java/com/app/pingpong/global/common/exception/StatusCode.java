@@ -48,6 +48,7 @@ public enum StatusCode {
     INVALID_SAVE_SEARCH_LOG(false, 400, "본인은 검색기록에 저장할 수 없습니다.", "INVALID_SAVE_SEARCH_LOG"),
 
     INVALID_LOGOUT_EMAIL(false, 400, "로그아웃 할 수 없는 이메일 입니다.", "INVALID_LOGOUT_EMAIL"),
+    INVALID_ACCESS_TOKEN(false, 400, "유효하지 않은 토큰입니다.", "INVALID_ACCESS_TOKEN"),
 
     EXCEED_HOST_TEAM_SIZE(false, 400, "그룹을 더이상 생성할 수 없습니다. 그룹 개수는 최대 6개로 제한됩니다.", "EXCEED_HOST_TEAM_SIZE"),
     MEMBER_NICKNAME_ALREADY_EXISTS(false, 400, "이미 사용중인 닉네임입니다.", "MEMBER_NICKNAME_ALREADY_EXISTS"),
@@ -59,11 +60,12 @@ public enum StatusCode {
     ALREADY_TEAM_HOST(false, 400, "이미 해당 그룹의 호스트입니다.", "ALREADY_TEAM_HOST"),
     ALREADY_ACCEPT_TEAM_INVITATION(false, 400, "이미 해당 그룹의 초대를 수락하였습니다.", "ALREADY_ACCEPT_TEAM_INVITATION"),
     ALREADY_INCOMPLETE_PLAN(false, 400, "해당 할 일의 완료 취소를 할 수 없습니다.", "ALREADY_INCOMPLETE_PLAN"),
-
+    ALREADY_INVITE_TEAM(false, 400, "이미 초대했거나, 이미 해당 그룹에 참가한 유저입니다.", "ALREADY_INVITE_TEAM"),
 
     /* 404 : NOT FOUND */
     MEMBER_NOT_FOUND(false, 404, "해당 유저를 찾을 수 없습니다.", "MEMBER_NOT_FOUND"),
     MEMBER_NOT_FOUND_IN_TEAM(false, 404, "해당 그룹에서 해당 유저를 찾을 수 없습니다.", "MEMBER_NOT_FOUND_IN_TEAM"),
+    DELEGATOR_NOT_FOUND_IN_TEAM(false, 404, "위임하려고 하는 유저가 해당 그룹에 존재하지 않습니다.", "DELEGATOR_NOT_FOUND_IN_TEAM"),
     EMAIL_NOT_FOUND(false, 404, "해당 이메일을 찾을 수 없습니다.", "EMAIL_NOT_FOUND"),
     FRIEND_NOT_FOUND(false, 404, "해당 유저와는 친구 상태가 아니거나, 친구 신청이 존재하지 않습니다.", "FRIEND_NOT_FOUND"),
     TEAM_NOT_FOUND(false, 404, "존재하지 않는 그룹입니다.", "TEAM_NOT_FOUND"),
