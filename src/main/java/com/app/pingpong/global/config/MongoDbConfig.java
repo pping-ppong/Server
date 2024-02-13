@@ -15,12 +15,12 @@ public class MongoDbConfig {
 
     @Bean
     public MongoClient mongoClient() {
-        return MongoClients.create("mongodb://localhost:27017");
+        return MongoClients.create("mongodb://developer:developer@3.37.220.80:27017/test");
     }
 
     @Bean
     public MongoTemplate mongoTemplate() {
-        MongoTemplate notification = new MongoTemplate(mongoClient(), "notification");
+        MongoTemplate notification = new MongoTemplate(mongoClient(), "test");
         return notification;
     }
 }
