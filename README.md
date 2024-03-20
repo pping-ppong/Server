@@ -1,8 +1,5 @@
-# PingPong
-
-## Project Overview
-
-
+# Ping Pong
+![핑퐁 배너](https://github.com/yaezzin/PingPong/assets/97823928/573c893c-04ad-4d39-8e81-3b81bab7e277)
 
 ## Stack
 
@@ -25,36 +22,10 @@
 ### Monitoring
 <img src="https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=Prometheus&logoColor=white"/> <img src="https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=Grafana&logoColor=white"/> 
 
-## API List
-
 ## ERD
-
-## Infra Structure
-
-## ArgoCD
-
-## Grafana 
+<img width="600" alt="스크린샷 2024-03-20 오후 6 10 19" src="https://github.com/yaezzin/PingPong/assets/97823928/9f685e9d-b0e5-4e41-b5b6-290cffad5a9e">
 
 ## Issue
-
-* [QueryDsl을 이용해 조회 성능 개선하기]()
-* [연관관계 매핑에 대한 고민 - @ManyToOne 지양하기?]() 
-* [검색 기록 저장 및 조회 기능 구현기 with Redis]()
-* [AOP를 활용한 중복코드 리팩토링]()
-* [공통 응답객체 만들기]()
-* [No offset 방식으로 성능 개선하기]()
-* [알림 서비스 구현기 - Redis or MongoDB?]() 
-* [Lambda를 이용한 이미지 리사이징]()
-* [Github Actinos를 이용한 CI/CD + tag release]()
-* [로그인/로그아웃 with 블랙리스트]()
-* [Terraform으로 k8s cluster 생성하기]()
-* [Helm ]()
-* [ArgoCD]()
-* [Prometheus Grafana]
-
-
-
-
 
 ## Main feature
 
