@@ -86,7 +86,3 @@ src
 * ```🤖 Android``` **김민지** ([@mingZZ-3](https://github.com/mingZZ-3))
 * ```🍎 iOS```     **성민주** ([@yoogail105](https://github.com/yoogail105))
 * ```🛠 Backend``` **전예진** ([@yaezzin](https://github.com/yaezzin))
-
-
-
-

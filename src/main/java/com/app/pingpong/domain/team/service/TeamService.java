@@ -233,6 +233,7 @@ public class TeamService {
         return SUCCESS_RECOVER_TRASH;
     }
 
+
     private void checkTeam(Member host, TeamRequest request) {
         if (teamRepository.findAllByHostIdAndStatus(host.getId(), ACTIVE).size() >= TEAM_THRESHOLD.getNumber()) {
             throw new BaseException(EXCEED_HOST_TEAM_SIZE);
@@ -243,6 +244,7 @@ public class TeamService {
         if (request.getMemberId().size() > 10 || request.getMemberId().size() < 1) {
             throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
         }
+
         if (request.getMemberId().contains(host.getId())) {
             throw new BaseException(INVALID_TEAM_HOST_MEMBER);
         }
@@ -273,6 +275,7 @@ public class TeamService {
                 .forEach(member -> {
                     if (isMemberAlreadyInTeamWithStatus(newTeam, member, WAIT) || isMemberAlreadyInTeamWithStatus(newTeam, member, ACTIVE)) {
                         throw new BaseException(ALREADY_INVITE_TEAM);
+
                     } else if (isMemberAlreadyInTeamWithStatus(newTeam, member, DELETE)) {
                         MemberTeam memberTeam = memberTeamRepository.findByTeamIdAndMemberIdAndStatus(newTeam.getId(), member.getId(), DELETE)
                                 .orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
@@ -492,9 +495,11 @@ public class TeamService {
 
     private void incomplete(Long teamId, Long planId) {
         Plan plan = planRepository.findByIdAndTeamIdAndStatus(planId, teamId, ACTIVE).orElseThrow(() -> new BaseException(PLAN_NOT_FOUND));
+
         if (!plan.getManager().equals(memberFacade.getCurrentMember())) {
             throw new BaseException(INVALID_INCOMPLETE_PLAN);
         }
+
         if (plan.getAchievement().equals(INCOMPLETE)) {
             throw new BaseException(ALREADY_INCOMPLETE_PLAN);
         }
@@ -560,6 +565,7 @@ public class TeamService {
         if (plansInTrash.isEmpty()) {
             throw new BaseException(PLANS_IN_TRASH_NOT_FOUND);
         }
+
         for (Plan p : plansInTrash) {
             p.setStatus(PERMANENT);
         }

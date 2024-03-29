@@ -5,13 +5,17 @@ import com.app.pingpong.domain.member.repository.MemberRepository;
 import com.app.pingpong.domain.notification.dto.request.NotificationFriendRequest;
 import com.app.pingpong.domain.notification.dto.request.NotificationRequest;
 import com.app.pingpong.domain.notification.dto.request.NotificationTeamRequest;
+
+
 import com.app.pingpong.domain.notification.dto.response.NotificationResponse;
 import com.app.pingpong.domain.notification.entity.Notification;
 import com.app.pingpong.domain.notification.repository.NotificationRepository;
 import com.app.pingpong.domain.team.entity.Plan;
+
 import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.repository.PlanRepository;
 import com.app.pingpong.domain.team.repository.TeamRepository;
+
 import com.app.pingpong.global.common.exception.BaseException;
 import com.app.pingpong.global.common.exception.StatusCode;
 import lombok.RequiredArgsConstructor;
@@ -97,6 +101,7 @@ public class NotificationService {
         List<NotificationResponse> list = new ArrayList<>();
         for (Notification notification : notifications) {
             if (notification.getOpponentId() != null) {
+
                 Member member = memberRepository.findById(notification.getMemberId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
                 notification.setClicked();
                 notificationRepository.save(notification);
@@ -108,7 +113,6 @@ public class NotificationService {
 
     public StatusCode existUnReadNotification(Long id) {
         boolean exists = notificationRepository.existsAllByOpponentIdAndIsClicked(id, false);
-
         StatusCode statusCode;
         if (exists) {
             statusCode = SUCCESS_EXISTS_UNREAD_NOTIFY;

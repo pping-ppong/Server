@@ -20,6 +20,7 @@ public class TeamMemberResponse {
     private Status status;
 
     public static TeamMemberResponse of(Member findMember, Team team, Status friendStatus, MemberTeam isStatus) {
+
         return TeamMemberResponse.builder()
                 .memberId(findMember.getId())
                 .nickname(findMember.getNickname())

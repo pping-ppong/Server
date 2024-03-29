@@ -30,6 +30,7 @@ public enum StatusCode {
     SUCCESS_UNFOLLOW_FRIEND(true, 200, "친구 끊기에 성공하였습니다", "SUCCESS_UNFOLLOW_FRIEND"),
     SUCCESS_DELETE_ADMIN_POST(true, 200, "공지사항 삭제에 성공하였습니다.", "SUCCESS_DELETE_ADMIN_POST"),
 
+
     /* 400 : Bad Request   */
     INVALID_REFRESH_TOKEN(false, 400, "유효하지 않은 리프레시 토큰입니다.", "INVALID_REFRESH_TOKEN"),
     INVALID_SOCIAL_TYPE(false, 400, "소셜로그인 타입이 일치하지 않습니다.", "INVALID_SOCIAL_TYPE"),
@@ -47,6 +48,7 @@ public enum StatusCode {
     INVALID_RESIGN_STATUS(false, 400, "참여하지 않은 그룹이거나, 이미 나간 그룹입니다.", "INVALID_RESIGN_STATUS"),
     INVALID_S3_URL(false, 400, "올바르지 않은 S3 URL이므로 삭제가 불가능합니다.", "INVALID_S3_URL"),
 
+
     INVALID_PLAN(false, 400, "해당 할 일은 삭제되었습니다", "INVALID_PLAN"),
     INVALID_SAVE_SEARCH_LOG(false, 400, "본인은 검색기록에 저장할 수 없습니다.", "INVALID_SAVE_SEARCH_LOG"),
 
@@ -55,6 +57,7 @@ public enum StatusCode {
 
     EXCEED_HOST_TEAM_SIZE(false, 400, "그룹을 더이상 생성할 수 없습니다. 그룹 개수는 최대 6개로 제한됩니다.", "EXCEED_HOST_TEAM_SIZE"),
     EXCEED_MEMBER_TEAM_THRESHOLD(false, 400, "참여한 그룹이 6개 이상이므로, 그룹 생성 또는 참여가 불가능합니다.", "EXCEED_MEMBER_TEAM_THRESHOLD"),
+
     MEMBER_NICKNAME_ALREADY_EXISTS(false, 400, "이미 사용중인 닉네임입니다.", "MEMBER_NICKNAME_ALREADY_EXISTS"),
 
     MEMBER_ALREADY_FRIEND_REQUEST(false, 400, "해당 유저에게 이미 친구 신청을 하였습니다.", "MEMBER_ALREADY_FRIEND_REQUEST"),
@@ -69,6 +72,7 @@ public enum StatusCode {
     ALREADY_DELETE_TRASH(false, 400, "이미 영구 삭제된 일정입니다.", "ALREADY_DELETE_TRASH"),
     ALREADY_DELETE_EMAIL(false, 400, "탈퇴된 계정은 다시 재가입할 수 없습니다.", "ALREADY_DELETE_EMAIL"),
 
+
     /* 404 : NOT FOUND */
     MEMBER_NOT_FOUND(false, 404, "해당 유저를 찾을 수 없습니다.", "MEMBER_NOT_FOUND"),
     MEMBER_NOT_FOUND_IN_TEAM(false, 404, "해당 그룹에서 해당 유저를 찾을 수 없습니다.", "MEMBER_NOT_FOUND_IN_TEAM"),
@@ -79,9 +83,11 @@ public enum StatusCode {
     TEAM_INVITATION_NOT_FOUND(false, 404, "해당 그룹에 대한 초대가 존재하지 않습니다.", "TEAM_INVITATION_NOT_FOUND"),
     PLAN_NOT_FOUND(false, 404, "해당 할 일을 찾을 수 없습니다.", "PLAN_NOT_FOUND"),
     NOTIFICATION_NOT_FOUND(false, 404, "알림이 존재하지 않습니다.", "NOTIFICATION_NOT_FOUND"),
+
     BADGE_NOT_FOUND(false, 404, "해당 뱃지는 존재하지 않습니다", "BADGE_NOT_FOUND"),
     PLANS_IN_TRASH_NOT_FOUND(false, 404, "휴지통에서 삭제할 일정이 존재하지 않습니다.", "PLANS_IN_TRASH_NOT_FOUND"),
     ADMiN_POST_NOT_FOUND(false, 404, "해당 공지를 찾을 수 없습니다.", "ADMiN_POST_NOT_FOUND"),
+
 
     /* 500 */
     DATABASE_ERROR(false, 500, "데이터베이스 오류입니다.", "DATABASE_ERROR");

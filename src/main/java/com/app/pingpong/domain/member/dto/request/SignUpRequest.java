@@ -1,5 +1,7 @@
 package com.app.pingpong.domain.member.dto.request;
 
+
+import com.app.pingpong.global.common.status.Authority;
 import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.global.common.status.Authority;
 import lombok.AllArgsConstructor;
