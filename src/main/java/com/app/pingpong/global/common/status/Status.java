@@ -9,5 +9,7 @@ public enum Status {
     COMPLETE,
     INCOMPLETE,
     TODO,
-    FRIEND
+    FRIEND,
+    TEAM
+
 }

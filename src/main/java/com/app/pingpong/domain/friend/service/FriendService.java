@@ -38,6 +38,7 @@ public class FriendService {
         return FriendResponse.of(friendRepository.save(request.toEntity(applicant.getId(), respondent.getId())));
     }
 
+    @Transactional
     public StatusCode accept(Long opponentId, Long loginMemberId) {
         Friend request = getWaitingFriendRequest(opponentId, loginMemberId);
         setStatusActive(request);
@@ -45,6 +46,7 @@ public class FriendService {
         return SUCCESS_ACCEPT_FRIEND;
     }
 
+    @Transactional
     public StatusCode refuse(Long opponentId, Long loginMemberId) {
         Friend friend = getWaitingFriendRequest(opponentId, loginMemberId);
         setStatusDelete(friend);
@@ -54,11 +56,22 @@ public class FriendService {
 
     @Transactional(readOnly = true)
     public List<MemberResponse> getMyFriends(Long id) {
-        List<Member> friends = friendRepository.findAllFriendsByMemberId(id);
+        List<Member> friends1 = friendRepository.findAllFriendsByApplicant(id);
+        List<Member> friends2 = friendRepository.findAllFriendsByRespondent(id);
+
         List<MemberResponse> friendList = new ArrayList<>();
-        for (Member m : friends) {
-            friendList.add(MemberResponse.of(m));
+        for (Member m : friends1) {
+            if (!m.getStatus().equals(DELETE)) {
+                friendList.add(MemberResponse.of(m));
+            }
         }
+
+        for (Member m : friends2) {
+            if (!m.getStatus().equals(DELETE)) {
+                friendList.add(MemberResponse.of(m));
+            }
+        }
+
         return friendList;
     }
 
@@ -102,7 +115,8 @@ public class FriendService {
     }
 
     private void setNotificationAccepted(Long opponentId, Long loginMemberId) {
-        Notification notification = notificationRepository.findByMemberIdAndOpponentId(opponentId, loginMemberId).orElseThrow(() -> new BaseException(NOTIFICATION_NOT_FOUND));
+        Notification notification = notificationRepository.findByMemberIdAndOpponentIdAndIsAccepted(opponentId, loginMemberId, false).orElseThrow(() -> new BaseException(NOTIFICATION_NOT_FOUND));
+
         notification.setAccepted();
         notificationRepository.save(notification);
     }

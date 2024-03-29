@@ -6,9 +6,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
+
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 
 import java.time.LocalDateTime;
 
@@ -18,14 +23,21 @@ import java.time.LocalDateTime;
 @Document("notification")
 public class Notification {
 
-    @Field("memberId")
-    private Long memberId;
-
-    @Field("opponentId")
-    private Long opponentId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private String id;
 
     @Field("type")
     private Status type;
+
+    @Field("member_id")
+    private Long memberId;
+
+    @Field("opponent_id")
+    private Long opponentId;
+
+    @Field("team_id")
+    private Long teamId;
 
     @Field("message")
     private String message;
@@ -42,10 +54,11 @@ public class Notification {
     private LocalDateTime createdAt;
 
     @Builder
-    public Notification(Long memberId, Long opponentId, Status type, String message) {
+    public Notification(Status type, Long memberId, Long opponentId, Long teamId, String message) {
+        this.type = type;
         this.memberId = memberId;
         this.opponentId = opponentId;
-        this.type = type;
+        this.teamId = teamId;
         this.message = message;
         this.isClicked = false;
         this.isAccepted = false;

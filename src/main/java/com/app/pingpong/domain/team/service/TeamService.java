@@ -1,13 +1,13 @@
 package com.app.pingpong.domain.team.service;
 
 import com.app.pingpong.domain.friend.repository.FriendQueryRepository;
-import com.app.pingpong.domain.friend.repository.FriendRepository;
 import com.app.pingpong.domain.member.dto.response.MemberResponse;
 import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.domain.member.entity.MemberTeam;
 import com.app.pingpong.domain.member.repository.MemberRepository;
 import com.app.pingpong.domain.member.repository.MemberTeamRepository;
-import com.app.pingpong.domain.team.dto.request.TeamAchieveRequest;
+import com.app.pingpong.domain.notification.entity.Notification;
+import com.app.pingpong.domain.notification.repository.NotificationRepository;
 import com.app.pingpong.domain.team.dto.request.TeamPlanPassRequest;
 import com.app.pingpong.domain.team.dto.request.TeamPlanRequest;
 import com.app.pingpong.domain.team.dto.request.TeamRequest;
@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.app.pingpong.global.common.exception.StatusCode.*;
+import static com.app.pingpong.global.common.status.Constant.TEAM_THRESHOLD;
 import static com.app.pingpong.global.common.status.Status.*;
 
 @RequiredArgsConstructor
@@ -40,10 +41,10 @@ public class TeamService {
 
     private final MemberRepository memberRepository;
     private final FriendQueryRepository friendQueryRepository;
-    private final FriendRepository friendRepository;
     private final TeamRepository teamRepository;
     private final PlanRepository planRepository;
     private final MemberTeamRepository memberTeamRepository;
+    private final NotificationRepository notificationRepository;
     private final MemberFacade memberFacade;
 
     @Transactional
@@ -67,8 +68,6 @@ public class TeamService {
         checkHost(team.getHost());
         team.setName(request.getName());
         setTeamToMembers(team, request);
-
-        // 나랑 친구인지 여부 확인하는 예외처리 필요?
 
         return TeamResponse.of(memberTeamRepository.findAllByTeamId(team.getId()));
     }
@@ -104,17 +103,21 @@ public class TeamService {
     }
 
     @Transactional
-    public StatusCode accept(Long teamId) {
-        checkTeamExists(teamId);
-        checkTeamInvitationAlreadyExists(teamId);
-        inviteMemberToTeam(teamId);
+    public StatusCode accept(Long teamId, Long loginMemberId, String notificationId) {
+        Team team = checkTeamExists(teamId);
+        checkTeamInvitationAlreadyExists(teamId, loginMemberId);
+        checkTeamCountThreshold(loginMemberId);
+        inviteMemberToTeam(teamId, loginMemberId);
+        setNotificationAccepted(team.getHost().getId(), loginMemberId, notificationId);
         return SUCCESS_ACCEPT_TEAM_INVITATION;
     }
 
     @Transactional
-    public StatusCode refuse(Long teamId) {
-        checkTeamExists(teamId);
+    public StatusCode refuse(Long teamId, Long loginMemberId, String notificationId) {
+        Team team = checkTeamExists(teamId);
+        checkTeamInvitationAlreadyExists(teamId, loginMemberId);
         refuseTeamInvitation(teamId);
+        setNotificationAccepted(team.getHost().getId(), loginMemberId, notificationId);
         return SUCCESS_REFUSE_TEAM_INVITATION;
     }
 
@@ -177,14 +180,14 @@ public class TeamService {
     }
 
     @Transactional
-    public List<TeamAchieveResponse> getTeamAchievementRate(Long teamId, TeamAchieveRequest request) {
-        List<LocalDate> dateList = getPlanDateList(teamId, request);
+    public List<TeamAchieveResponse> getTeamAchievementRate(Long teamId, LocalDate startDate, LocalDate endDate) {
+        List<LocalDate> dateList = getPlanDateList(teamId, startDate, endDate);
         List<TeamAchieveResponse> achieveRate = getTeamPlanAchieve(teamId, dateList);
         return achieveRate;
     }
 
-    private List<LocalDate> getPlanDateList(Long teamId, TeamAchieveRequest request) {
-        List<LocalDate> dateList = planRepository.findAllByTeamIdAndStatusAndDateBetween(teamId, ACTIVE, request.getStartDate(), request.getEndDate())
+    private List<LocalDate> getPlanDateList(Long teamId, LocalDate startDate, LocalDate endDate) {
+        List<LocalDate> dateList = planRepository.findAllByTeamIdAndStatusAndDateBetween(teamId, ACTIVE, startDate, endDate)
                 .stream()
                 .map(Plan::getDate)
                 .distinct()
@@ -230,19 +233,24 @@ public class TeamService {
         return SUCCESS_RECOVER_TRASH;
     }
 
-    private void checkTeam(Member loginMember, TeamRequest request) {
-        if (teamRepository.findAllByHostId(loginMember.getId()).size() > 6) {
+
+    private void checkTeam(Member host, TeamRequest request) {
+        if (teamRepository.findAllByHostIdAndStatus(host.getId(), ACTIVE).size() >= TEAM_THRESHOLD.getNumber()) {
             throw new BaseException(EXCEED_HOST_TEAM_SIZE);
+        }
+        if (memberTeamRepository.findAllByMemberIdAndStatus(host.getId(), ACTIVE).size() >= TEAM_THRESHOLD.getNumber()) {
+            throw new BaseException(EXCEED_MEMBER_TEAM_THRESHOLD);
         }
         if (request.getMemberId().size() > 10 || request.getMemberId().size() < 1) {
             throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
         }
-        if (request.getMemberId().contains(loginMember.getId())) {
+
+        if (request.getMemberId().contains(host.getId())) {
             throw new BaseException(INVALID_TEAM_HOST_MEMBER);
         }
         for (Long id : request.getMemberId()) {
             memberRepository.findByIdAndStatus(id, ACTIVE).orElseThrow(() -> new BaseException(INVALID_INVITER));
-            friendQueryRepository.checkFriendship(loginMember.getId(), id);
+            friendQueryRepository.checkFriendship(host.getId(), id);
         }
     }
 
@@ -267,12 +275,19 @@ public class TeamService {
                 .forEach(member -> {
                     if (isMemberAlreadyInTeamWithStatus(newTeam, member, WAIT) || isMemberAlreadyInTeamWithStatus(newTeam, member, ACTIVE)) {
                         throw new BaseException(ALREADY_INVITE_TEAM);
+
+                    } else if (isMemberAlreadyInTeamWithStatus(newTeam, member, DELETE)) {
+                        MemberTeam memberTeam = memberTeamRepository.findByTeamIdAndMemberIdAndStatus(newTeam.getId(), member.getId(), DELETE)
+                                .orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND_IN_TEAM));
+                        memberTeam.setStatus(WAIT);
+                        memberTeamRepository.save(memberTeam);
+                    } else {
+                        MemberTeam memberTeam = new MemberTeam();
+                        memberTeam.setTeam(newTeam);
+                        memberTeam.setMember(member);
+                        memberTeam.setStatus(WAIT);
+                        memberTeamRepository.save(memberTeam);
                     }
-                    MemberTeam memberTeam = new MemberTeam();
-                    memberTeam.setTeam(newTeam);
-                    memberTeam.setMember(member);
-                    memberTeam.setStatus(WAIT);
-                    memberTeamRepository.save(memberTeam);
                 });
     }
 
@@ -288,8 +303,12 @@ public class TeamService {
 
     private void deleteTeamAndMembers(Team team) {
         team.setStatus(DELETE);
+
         List<MemberTeam> memberTeams = memberTeamRepository.findAllByTeamId(team.getId());
+        List<Plan> plans = planRepository.findAllByTeamId(team.getId());
+
         memberTeams.forEach(memberTeam -> memberTeam.setStatus(DELETE));
+        plans.forEach(plan -> plan.setStatus(DELETE));
     }
 
     private Team checkHostForDelegate(Long teamId, Long loginMemberId, Long delegatorId) {
@@ -311,8 +330,13 @@ public class TeamService {
     private List<TeamCompactResponse> getTeamMemberStatus(Team team) {
         List<TeamCompactResponse> list = new ArrayList<>();
         List<MemberTeam> all = memberTeamRepository.findAllByTeamId(team.getId());
+
         for (MemberTeam mt : all) {
-            list.add(TeamCompactResponse.builder().memberId(mt.getMember().getId()).status(mt.getStatus()).build());
+            if (!mt.getStatus().equals(DELETE)) {
+                list.add(TeamCompactResponse.builder()
+                        .memberId(mt.getMember().getId())
+                        .status(mt.getStatus()).build());
+            }
         }
         return list;
     }
@@ -346,6 +370,7 @@ public class TeamService {
 
     private List<Member> getMembersFromMemberTeams(List<MemberTeam> memberTeams) {
         return memberTeams.stream()
+                .filter(memberTeam -> !memberTeam.getStatus().equals(DELETE))
                 .map(MemberTeam::getMember)
                 .filter(member -> member.getStatus().equals(ACTIVE))
                 .collect(Collectors.toList());
@@ -367,17 +392,31 @@ public class TeamService {
         return teamRepository.findByIdAndStatus(teamId, ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
     }
 
-    private void checkTeamInvitationAlreadyExists(Long teamId) {
-        if (memberTeamRepository.existsByTeamIdAndMemberIdAndStatus(teamId, memberFacade.getCurrentMember().getId(), ACTIVE)) {
+    private void checkTeamInvitationAlreadyExists(Long teamId, Long loginMemberId) {
+        if (memberTeamRepository.existsByTeamIdAndMemberIdAndStatus(teamId, loginMemberId, ACTIVE)) {
             throw new BaseException(ALREADY_ACCEPT_TEAM_INVITATION);
         }
     }
 
-    private void inviteMemberToTeam(Long teamId) {
-        MemberTeam memberTeam = memberTeamRepository.findByTeamIdAndMemberIdAndStatus(teamId, memberFacade.getCurrentMember().getId(), WAIT)
+    private void checkTeamCountThreshold(Long loginMemberId) {
+        List<MemberTeam> memberTeams = memberTeamRepository.findAllByMemberIdAndStatus(loginMemberId, ACTIVE);
+        if (memberTeams.size() >= TEAM_THRESHOLD.getNumber()) {
+            throw new BaseException(EXCEED_MEMBER_TEAM_THRESHOLD);
+        }
+    }
+
+    private void inviteMemberToTeam(Long teamId, Long loginMemberId) {
+        MemberTeam memberTeam = memberTeamRepository.findByTeamIdAndMemberIdAndStatus(teamId, loginMemberId, WAIT)
                 .orElseThrow(() -> new BaseException(TEAM_INVITATION_NOT_FOUND));
         memberTeam.setStatus(ACTIVE);
         memberTeam.setParticipatedAt(new Date());
+    }
+
+    private void setNotificationAccepted(Long opponentId, Long loginMemberId, String notificationId) {
+        Notification notification = notificationRepository.findByIdAndMemberIdAndOpponentIdAndTypeAndIsAccepted(notificationId, opponentId, loginMemberId, TEAM, false)
+                .orElseThrow(() -> new BaseException(NOTIFICATION_NOT_FOUND));
+        notification.setAccepted();
+        notificationRepository.save(notification);
     }
 
     private void refuseTeamInvitation(Long teamId) {
@@ -448,11 +487,19 @@ public class TeamService {
         if (!plan.getManager().equals(memberFacade.getCurrentMember())) {
             throw new BaseException(INVALID_COMPLETE_PLAN);
         }
+        if (plan.getAchievement().equals(COMPLETE)) {
+            throw new BaseException(ALREADY_COMPLETE_PLAN);
+        }
         plan.setAchievement(COMPLETE);
     }
 
     private void incomplete(Long teamId, Long planId) {
         Plan plan = planRepository.findByIdAndTeamIdAndStatus(planId, teamId, ACTIVE).orElseThrow(() -> new BaseException(PLAN_NOT_FOUND));
+
+        if (!plan.getManager().equals(memberFacade.getCurrentMember())) {
+            throw new BaseException(INVALID_INCOMPLETE_PLAN);
+        }
+
         if (plan.getAchievement().equals(INCOMPLETE)) {
             throw new BaseException(ALREADY_INCOMPLETE_PLAN);
         }
@@ -495,7 +542,8 @@ public class TeamService {
 
         List<Plan> plansInTrash;
         if (loginMember.equals(team.getHost())) { // 방장이라면 팀에 대한 모든 삭제된 일정 가져옴
-            plansInTrash = planRepository.findAllByTeamIdAndStatusOrderByWastedTimeDesc(team.getId(), DELETE);
+            plansInTrash = planRepository.findAllByTeamIdAndStatusOrderByWastedTimeDesc(team.getId(), DELETE)
+                    .orElseThrow(() -> new BaseException(ALREADY_DELETE_TRASH));
         } else { // 방장이 아니면 내가 담당자인것만 가져옴옴
             plansInTrash = planRepository.findAllByManagerIdAndTeamIdAndStatusOrderByWastedTimeDesc(loginMemberId, team.getId(), DELETE);
         }
@@ -512,14 +560,19 @@ public class TeamService {
     }
 
     private void deleteAllTrashPermanent(Long teamId) {
-        List<Plan> plansInTrash = planRepository.findAllByTeamIdAndStatusOrderByWastedTimeDesc(teamId, DELETE);
+        List<Plan> plansInTrash = planRepository.findAllByTeamIdAndStatusOrderByWastedTimeDesc(teamId, DELETE)
+                .orElseThrow(() -> new BaseException(ALREADY_DELETE_TRASH));
+        if (plansInTrash.isEmpty()) {
+            throw new BaseException(PLANS_IN_TRASH_NOT_FOUND);
+        }
+
         for (Plan p : plansInTrash) {
             p.setStatus(PERMANENT);
         }
     }
 
     private void deleteTrashPermanent(Long planId) {
-        Plan plan = planRepository.findById(planId).orElseThrow(() -> new BaseException(PLAN_NOT_FOUND));
+        Plan plan = planRepository.findByIdAndStatus(planId, DELETE).orElseThrow(() -> new BaseException(PLAN_NOT_FOUND));
         plan.setStatus(PERMANENT);
     }
 

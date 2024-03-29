@@ -4,11 +4,18 @@ import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.domain.member.repository.MemberRepository;
 import com.app.pingpong.domain.notification.dto.request.NotificationFriendRequest;
 import com.app.pingpong.domain.notification.dto.request.NotificationRequest;
+import com.app.pingpong.domain.notification.dto.request.NotificationTeamRequest;
+
+
 import com.app.pingpong.domain.notification.dto.response.NotificationResponse;
 import com.app.pingpong.domain.notification.entity.Notification;
 import com.app.pingpong.domain.notification.repository.NotificationRepository;
 import com.app.pingpong.domain.team.entity.Plan;
+
+import com.app.pingpong.domain.team.entity.Team;
 import com.app.pingpong.domain.team.repository.PlanRepository;
+import com.app.pingpong.domain.team.repository.TeamRepository;
+
 import com.app.pingpong.global.common.exception.BaseException;
 import com.app.pingpong.global.common.exception.StatusCode;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +34,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final MemberRepository memberRepository;
+    private final TeamRepository teamRepository;
     private final PlanRepository planRepository;
 
     @Transactional
@@ -40,6 +48,7 @@ public class NotificationService {
                 .memberId(request.getMemberId())
                 .opponentId(loginMemberId)
                 .type(TODO)
+                .teamId(plan.getTeam().getId())
                 .message(message)
                 .build();
         notificationRepository.save(notification);
@@ -54,11 +63,32 @@ public class NotificationService {
 
         String message = me.getNickname() + "님이 친구 신청을 보냈어요";
         Notification notification = Notification.builder()
+                .type(FRIEND)
                 .memberId(loginMemberId)
                 .opponentId(request.getMemberId())
-                .type(FRIEND)
+                .teamId(null)
                 .message(message)
                 .build();
+
+        notificationRepository.save(notification);
+
+        return SUCCESS_SEND_NOTIFICATION;
+    }
+
+    @Transactional
+    public StatusCode notifyTeam(NotificationTeamRequest request, Long loginMemberId) {
+        Member opponent = memberRepository.findByIdAndStatus(request.getMemberId(), ACTIVE).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+        Team team = teamRepository.findByIdAndStatus(request.getTeamId(), ACTIVE).orElseThrow(() -> new BaseException(TEAM_NOT_FOUND));
+
+        String message = team.getName() + "의 초대를 받았어요.";
+        Notification notification = Notification.builder()
+                .type(TEAM)
+                .memberId(loginMemberId)
+                .opponentId(request.getMemberId())
+                .teamId(team.getId())
+                .message(message)
+                .build();
+
         notificationRepository.save(notification);
 
         return SUCCESS_SEND_NOTIFICATION;
@@ -66,13 +96,15 @@ public class NotificationService {
 
     @Transactional
     public List<NotificationResponse> findAll(Long loginMemberId) {
-        List<Notification> notifications = notificationRepository.findAllByOpponentIdOrderByCreatedAtAsc(loginMemberId);
+        List<Notification> notifications = notificationRepository.findAllByOpponentIdOrderByCreatedAtDesc(loginMemberId);
 
         List<NotificationResponse> list = new ArrayList<>();
         for (Notification notification : notifications) {
             if (notification.getOpponentId() != null) {
-                Member member = memberRepository.findById(notification.getOpponentId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+
+                Member member = memberRepository.findById(notification.getMemberId()).orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
                 notification.setClicked();
+                notificationRepository.save(notification);
                 list.add(NotificationResponse.of(notification, member));
             }
         }
@@ -82,8 +114,11 @@ public class NotificationService {
     public StatusCode existUnReadNotification(Long id) {
         boolean exists = notificationRepository.existsAllByOpponentIdAndIsClicked(id, false);
         StatusCode statusCode;
-        if (!exists) statusCode = SUCCESS_EXISTS_NOTIFY;
-        else statusCode = SUCCESS_EXISTS_UNREAD_NOTIFY;
+        if (exists) {
+            statusCode = SUCCESS_EXISTS_UNREAD_NOTIFY;
+        } else {
+            statusCode = SUCCESS_EXISTS_NOTIFY;
+        }
         return statusCode;
     }
 }

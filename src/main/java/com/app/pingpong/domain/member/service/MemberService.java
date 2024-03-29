@@ -6,11 +6,12 @@ import com.app.pingpong.domain.member.dto.request.SearchLogRequest;
 import com.app.pingpong.domain.member.dto.request.SignUpRequest;
 import com.app.pingpong.domain.member.dto.request.UpdateRequest;
 import com.app.pingpong.domain.member.dto.response.*;
+import com.app.pingpong.domain.member.entity.Badge;
 import com.app.pingpong.domain.member.entity.Member;
+import com.app.pingpong.domain.member.entity.MemberBadge;
 import com.app.pingpong.domain.member.entity.MemberTeam;
-import com.app.pingpong.domain.member.repository.MemberRepository;
-import com.app.pingpong.domain.member.repository.MemberSearchRepository;
-import com.app.pingpong.domain.member.repository.MemberTeamRepository;
+import com.app.pingpong.domain.member.repository.*;
+
 import com.app.pingpong.domain.team.dto.response.TeamPlanResponse;
 import com.app.pingpong.domain.team.entity.Plan;
 import com.app.pingpong.domain.team.entity.Team;
@@ -43,6 +44,8 @@ public class MemberService {
     private final MemberSearchRepository memberSearchRepository;
     private final FriendQueryRepository friendQueryRepository;
     private final MemberTeamRepository memberTeamRepository;
+    private final BadgeRepository badgeRepository;
+    private final MemberBadgeRepository memberBadgeRepository;
     private final PlanRepository planRepository;
 
     private final RedisTemplate<String, Object> redisTemplate;
@@ -52,8 +55,13 @@ public class MemberService {
 
     @Transactional
     public MemberResponse signup(SignUpRequest request) {
+        if (memberRepository.existsByEmailAndStatus(request.getEmail(), DELETE)) {
+            throw new BaseException(ALREADY_DELETE_EMAIL);
+        }
+        validateNickname(request.getNickname());
         Member member = request.toEntity(passwordEncoder);
-        return MemberResponse.of(memberRepository.save(member));
+        memberRepository.save(member);
+        return MemberResponse.of(member);
     }
 
     @Transactional
@@ -75,10 +83,17 @@ public class MemberService {
     @Transactional
     public MemberResponse update(Long id, UpdateRequest request) {
         Member member = findMemberByIdAndStatus(id, ACTIVE);
-        s3Uploader.deleteFile(member.getProfileImage());
 
-        validateNickname(request.getNickname());
-        member.setNickname(request.getNickname());
+        if (!request.getNickname().equals("")) {
+            validateNickname(request.getNickname());
+            member.setNickname(request.getNickname());
+        }
+
+        if (!member.getProfileImage().equals("")) {
+            String ImageUrl = s3Uploader.getFilePath(member.getProfileImage());
+            s3Uploader.deleteFile(ImageUrl);
+        }
+
         member.setProfileImage(request.getProfileImage());
 
         return MemberResponse.of(member);
@@ -99,10 +114,33 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public MemberDetailResponse getOppPage(Long id) {
-        Member member = findMemberByIdAndStatus(id, ACTIVE);
-        int friendCount = friendQueryRepository.findFriendCount(id);
-        return MemberDetailResponse.of(member, friendCount);
+    public MemberProfileResponse getOppPage(Long oppId, Long myId) {
+        Member member = findMemberByIdAndStatus(oppId, ACTIVE);
+        int friendCount = friendQueryRepository.findFriendCount(oppId);
+        Status friendStatus = friendQueryRepository.findFriendStatus(myId, oppId);
+        return MemberProfileResponse.of(member, friendCount, friendStatus);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MemberSearchResponse> findByNickname(String nickname, Long id) {
+        List<Member> findMembers = memberSearchRepository.findByNicknameContainsWithNoOffset(ACTIVE, nickname, id, 10)
+                .orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+
+        /* save log into Redis */
+        ListOperations<String, Object> listOps = redisTemplate.opsForList();
+        String loginUserId = "id" + memberFacade.getCurrentMember().getId();
+        String keyword = nickname;
+
+        listOps.remove(loginUserId, 0, keyword);
+        listOps.leftPush(loginUserId, keyword);
+
+        List<MemberSearchResponse> friendshipList = new ArrayList<>();
+        for (Member findMember : findMembers) {
+
+            Status friendStatus = friendQueryRepository.findFriendStatus(memberFacade.getCurrentMember().getId(), findMember.getId());
+            friendshipList.add(MemberSearchResponse.of(findMember, friendStatus));
+        }
+        return friendshipList;
     }
 
     @Transactional(readOnly = true)
@@ -191,6 +229,38 @@ public class MemberService {
         return response;
     }
 
+    @Transactional
+    public List<MemberBadgeResponse> getMemberBadges(Long id) {
+        Member member = findMemberByIdAndStatus(id, ACTIVE);
+
+        List<MemberBadge> memberBadges = memberBadgeRepository.findByMemberId(member.getId());
+
+        List<MemberBadgeResponse> response = new ArrayList<>();
+        for (MemberBadge memberBadge : memberBadges) {
+            Long badgeId = memberBadge.getBadge().getId();
+            Badge badge = badgeRepository.findById(badgeId).orElseThrow(() -> new BaseException(BADGE_NOT_FOUND));
+            response.add(MemberBadgeResponse.of(badge));
+        }
+
+        return response;
+    }
+
+    @Transactional
+    public List<MemberBadgeResponse> getMemberPreBadges(Long id) {
+        Member member = findMemberByIdAndStatus(id, ACTIVE);
+
+        List<MemberBadge> memberBadges = memberBadgeRepository.findTop8ByMemberIdAndStatusOrderByBadgeIdAsc(id, ACTIVE);
+
+        List<MemberBadgeResponse> response = new ArrayList<>();
+        for (MemberBadge memberBadge : memberBadges) {
+            Long badgeId = memberBadge.getBadge().getId();
+            Badge badge = badgeRepository.findById(badgeId).orElseThrow(() -> new BaseException(BADGE_NOT_FOUND));
+            response.add(MemberBadgeResponse.of(badge));
+        }
+
+        return response;
+    }
+
     private TeamPlanResponse createTeamPlanResponse(Plan plan) {
         return TeamPlanResponse.builder()
                 .planId(plan.getId())
@@ -212,20 +282,26 @@ public class MemberService {
 
         List<String> list = new ArrayList<>();
         List<Object> redisData = listOps.range(loginMemberId, 0, 20);
-        System.out.println("=====================" + redisData.get(0));
 
         for (Object o : redisData) {
-            String str = o.toString().substring(0, 2);
+            if (o != null) {
+                String str = o.toString();
 
-            if (!str.equals("id") && list.size() < 10) { // keyword
-                list.add(str);
-            } else {
-                String memberId = o.toString().substring(2);
-                if (!list.contains(memberId) && list.size() < 10) {
-                    list.add(memberId);
+                if (str.length() >= 2) {
+                    str = str.substring(0, 2);
+
+                    if (!str.equals("id") && list.size() < 10) { // keyword
+                        list.add(str);
+                    } else {
+                        String memberId = o.toString().substring(2);
+                        if (!list.contains(memberId) && list.size() < 10) {
+                            list.add(memberId);
+                        }
+                    }
                 }
             }
         }
+
         return list;
     }
 

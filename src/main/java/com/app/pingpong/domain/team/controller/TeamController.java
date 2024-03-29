@@ -1,6 +1,5 @@
 package com.app.pingpong.domain.team.controller;
 
-import com.app.pingpong.domain.team.dto.request.TeamAchieveRequest;
 import com.app.pingpong.domain.team.dto.request.TeamPlanPassRequest;
 import com.app.pingpong.domain.team.dto.request.TeamPlanRequest;
 import com.app.pingpong.domain.team.dto.request.TeamRequest;
@@ -64,14 +63,23 @@ public class TeamController {
 
     @ResponseBody
     @PostMapping("/{id}/accept")
-    public BaseResponse<StatusCode> accept(@PathVariable("id") Long teamId) {
-        return new BaseResponse<>(teamService.accept(teamId));
+    @CheckLoginStatus(auth = Authority.ROLE_USER)
+    public BaseResponse<StatusCode> accept(@PathVariable("id") Long teamId, @CurrentLoginMemberId Long loginMemberId, @RequestParam("notificationId") String notificationId) {
+        return new BaseResponse<>(teamService.accept(teamId, loginMemberId, notificationId));
     }
 
     @ResponseBody
     @DeleteMapping("/{id}/refuse")
-    public BaseResponse<StatusCode> refuse(@PathVariable("id") Long teamId) {
-        return new BaseResponse<>(teamService.refuse(teamId));
+    @CheckLoginStatus(auth = Authority.ROLE_USER)
+    public BaseResponse<StatusCode> refuse(@PathVariable("id") Long teamId, @CurrentLoginMemberId Long loginMemberId, @RequestParam("notificationId") String notificationId) {
+        return new BaseResponse<>(teamService.refuse(teamId, loginMemberId, notificationId));
+    }
+
+    @ResponseBody
+    @PostMapping("/{id}/resign")
+    @CheckLoginStatus(auth = Authority.ROLE_USER)
+    public BaseResponse<StatusCode> resign(@PathVariable("id") Long teamId, @CurrentLoginMemberId Long id) {
+        return new BaseResponse<>(teamService.resign(teamId, id));
     }
 
     @ResponseBody
@@ -129,9 +137,10 @@ public class TeamController {
 
     @ResponseBody
     @GetMapping("/{id}/calendars/achievement")
-    public BaseResponse<List<TeamAchieveResponse>> getTeamAchievementRate(@PathVariable Long id,
-                                                                          @RequestBody TeamAchieveRequest request) {
-        return new BaseResponse<>(teamService.getTeamAchievementRate(id, request));
+    public BaseResponse<List<TeamAchieveResponse>> getTeamAchievementRate(@PathVariable("id") Long teamId,
+                                                                          @RequestParam("startDate") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+                                                                          @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
+        return new BaseResponse<>(teamService.getTeamAchievementRate(teamId, startDate, endDate));
     }
 
     @ResponseBody
