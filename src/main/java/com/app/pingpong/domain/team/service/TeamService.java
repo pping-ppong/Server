@@ -244,10 +244,12 @@ public class TeamService {
         if (request.getMemberId().size() > 10 || request.getMemberId().size() < 1) {
             throw new BaseException(INVALID_TEAM_MEMBER_SIZE);
         }
+        request.getMemberId().forEach(memberId -> {
+            if (memberId.equals(host.getId())) {
+                throw new BaseException(INVALID_TEAM_HOST_MEMBER);
+            }
+        });
 
-        if (request.getMemberId().contains(host.getId())) {
-            throw new BaseException(INVALID_TEAM_HOST_MEMBER);
-        }
         for (Long id : request.getMemberId()) {
             memberRepository.findByIdAndStatus(id, ACTIVE).orElseThrow(() -> new BaseException(INVALID_INVITER));
             friendQueryRepository.checkFriendship(host.getId(), id);
