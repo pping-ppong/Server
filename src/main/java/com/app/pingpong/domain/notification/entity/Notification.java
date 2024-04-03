@@ -7,12 +7,14 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
+
 import java.time.LocalDateTime;
 
 @Getter

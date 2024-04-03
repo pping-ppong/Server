@@ -45,6 +45,7 @@ public class S3Uploader {
             }
 
             fileNameList.add(amazonS3.getUrl(bucket, fileName).toString());
+
         });
         return fileNameList;
     }

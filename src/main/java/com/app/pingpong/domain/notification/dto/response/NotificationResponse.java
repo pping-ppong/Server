@@ -42,4 +42,5 @@ public class NotificationResponse {
         return new NotificationResponse(notification.getId(), notification.getType(), member.getId(), member.getProfileImage(),
                 notification.getTeamId(), notification.getMessage(), notification.getIsClicked(), notification.getIsAccepted(), days);
     }
+
 }

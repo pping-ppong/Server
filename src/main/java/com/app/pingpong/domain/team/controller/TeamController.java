@@ -83,6 +83,13 @@ public class TeamController {
     }
 
     @ResponseBody
+    @PostMapping("/{id}/resign")
+    @CheckLoginStatus(auth = Authority.ROLE_USER)
+    public BaseResponse<StatusCode> resign(@PathVariable("id") Long teamId, @CurrentLoginMemberId Long id) {
+        return new BaseResponse<>(teamService.resign(teamId, id));
+    }
+
+    @ResponseBody
     @PostMapping("/{id}/plans")
     public BaseResponse<TeamPlanResponse> createPlan(@PathVariable("id") Long id, @RequestBody TeamPlanRequest request) {
         return new BaseResponse<>(teamService.createPlan(id, request));

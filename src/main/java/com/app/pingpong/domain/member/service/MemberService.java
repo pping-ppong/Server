@@ -11,6 +11,7 @@ import com.app.pingpong.domain.member.entity.Member;
 import com.app.pingpong.domain.member.entity.MemberBadge;
 import com.app.pingpong.domain.member.entity.MemberTeam;
 import com.app.pingpong.domain.member.repository.*;
+
 import com.app.pingpong.domain.team.dto.response.TeamPlanResponse;
 import com.app.pingpong.domain.team.entity.Plan;
 import com.app.pingpong.domain.team.entity.Team;
@@ -138,6 +139,25 @@ public class MemberService {
 
             Status friendStatus = friendQueryRepository.findFriendStatus(memberFacade.getCurrentMember().getId(), findMember.getId());
             friendshipList.add(MemberSearchResponse.of(findMember, friendStatus));
+        }
+        return friendshipList;
+    }
+
+    @Transactional(readOnly = true)
+    public List<MemberSearchResponse> findByNickname(String nickname, Long id) {
+        List<Member> findMembers = memberSearchRepository.findByNicknameContainsWithNoOffset(ACTIVE, nickname, id, 10)
+                .orElseThrow(() -> new BaseException(MEMBER_NOT_FOUND));
+
+        /* save log into Redis */
+        ListOperations<String, Object> listOps = redisTemplate.opsForList();
+        String loginUserId = "id" + memberFacade.getCurrentMember().getId();
+        String keyword = nickname;
+        listOps.leftPush(loginUserId, keyword);
+
+        List<MemberSearchResponse> friendshipList = new ArrayList<>();
+        for (Member findMember : findMembers) {
+            boolean isFriend = friendQueryRepository.isFriend(memberFacade.getCurrentMember().getId(), findMember.getId());
+            friendshipList.add(MemberSearchResponse.of(findMember, isFriend));
         }
         return friendshipList;
     }

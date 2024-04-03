@@ -116,6 +116,7 @@ public class FriendService {
 
     private void setNotificationAccepted(Long opponentId, Long loginMemberId) {
         Notification notification = notificationRepository.findByMemberIdAndOpponentIdAndIsAccepted(opponentId, loginMemberId, false).orElseThrow(() -> new BaseException(NOTIFICATION_NOT_FOUND));
+
         notification.setAccepted();
         notificationRepository.save(notification);
     }
