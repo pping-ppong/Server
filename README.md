@@ -130,7 +130,7 @@ src
 * [AOP를 활용한 중복코드 리팩토링](https://github.com/pping-ppong/Server/issues/4)
 * [공통 응답 객체 만들기](https://github.com/pping-ppong/Server/issues/5)
 * [No offset 방식 적용하기](https://github.com/pping-ppong/Server/issues/6)
-* [알림 서비스에 대한 고민](https://github.com/pping-ppong/Server/issues/6)
+
 
 ## Developer
 
