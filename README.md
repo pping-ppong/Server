@@ -4,7 +4,7 @@
 🤖 [Google Play](https://play.google.com/store/apps/details?id=com.pingpong_android)     
 🍎 [App Store](https://apps.apple.com/kr/app/%ED%95%91%ED%90%81-%ED%95%A8%EA%BB%98-%ED%95%A0-%EC%9D%BC%EC%9D%84-%EA%B4%80%EB%A6%AC%ED%95%98%EB%8A%94-%EC%95%B1/id6479270351)
 
-![핑퐁 배너](https://github.com/yaezzin/PingPong/assets/97823928/573c893c-04ad-4d39-8e81-3b81bab7e277)
+![image](https://github.com/user-attachments/assets/145710f0-f08a-4903-9233-b2b6c07419a8)
 
 
 ## Description
@@ -33,7 +33,6 @@
 * 사용자는 자신의 닉네임과 프로필 사진을 변경할 수 있습니다.
 * 사용자는 자신의 프로필에서 현재 참여 중인 그룹과 획득한 뱃지를 확인할 수 있습니다.
 * 친구 수 및 할 일 성취개수 등의 조건을 충족하면 뱃지를 획득할 수 있습니다.
-*  ```Spring Quartz```를 통한 특정 시간에 뱃지 획득 작업을 실행합니다.
 
 <br>
 <img width="596" alt="스크린샷 2024-05-20 오후 6 47 27" src="https://github.com/pping-ppong/Server/assets/97823928/72d9b14d-e655-44c6-81f5-1ead2ac7c438">
@@ -87,7 +86,7 @@
 ### 6. 알림 
 
 * 친구 신청, 팀 초대, 할 일 넘기기 등의 다양한 이벤트가 발생하면 사용자에게 알림을 발송합니다
-* Spring SEE(Spring Server-Sent Events)를 통해 실시간으로 푸쉬 알림을 수신할 수 있습니다.
+* ```FCM```을 통해 실시간으로 푸쉬 알림을 수신할 수 있습니다.
   
 ## Stack
 * **Languange** : Java
@@ -120,20 +119,6 @@ src
         ├── config
         └── security
 ```
-
-## ERD
-
-<img width="600" alt="스크린샷 2024-03-20 오후 6 10 19" src="https://github.com/yaezzin/PingPong/assets/97823928/9f685e9d-b0e5-4e41-b5b6-290cffad5a9e">
-
-## Server Architecture
-
-
-
-## CI/CD
-
-* github actions를 활용해서 지속적 통합 및 배포
-* ```feature```브랜치에서 ```dev```로 Pull Request를 보내면, CI가 동작
-* ```dev```에서 ```release```로 Pull Request를 보내면, CI가 동작되고 Merge가 되면, 운영 리소스에 배포
 
 ## Dev Issue
 
